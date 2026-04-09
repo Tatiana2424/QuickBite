@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\QuickBite.Identity.Application\QuickBite.Identity.Application.csproj" />
+    <ProjectReference Include="..\QuickBite.Identity.Domain\QuickBite.Identity.Domain.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\QuickBite.BuildingBlocks.Common\QuickBite.BuildingBlocks.Common.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\QuickBite.BuildingBlocks.Contracts\QuickBite.BuildingBlocks.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\QuickBite.BuildingBlocks.Kafka\QuickBite.BuildingBlocks.Kafka.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+  </ItemGroup>
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+</Project>

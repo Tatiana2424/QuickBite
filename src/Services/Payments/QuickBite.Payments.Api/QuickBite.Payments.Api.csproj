@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <ProjectReference Include="..\QuickBite.Payments.Application\QuickBite.Payments.Application.csproj" />
+    <ProjectReference Include="..\QuickBite.Payments.Infrastructure\QuickBite.Payments.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\QuickBite.BuildingBlocks.Observability\QuickBite.BuildingBlocks.Observability.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+  </ItemGroup>
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+</Project>

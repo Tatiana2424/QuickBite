@@ -6,14 +6,24 @@
 - Node.js 20+ and npm
 - Docker Desktop or another Docker engine
 
-## Backend
+## Local runtime modes
 
-1. Restore the solution from the repository root:
+QuickBite should be developed in one of two local modes depending on the task.
+
+### Mode A: infrastructure only
+
+Use this mode for everyday development. Shared infrastructure runs in Docker, while the APIs, gateway, and frontend run from the host.
+
+1. Restore the solution:
 
    `dotnet restore QuickBite.sln`
 
-2. Start SQL Server and Kafka locally. Docker Compose is the easiest option.
-3. Run backend services individually if needed:
+2. Copy `.env.example` to `.env`.
+3. Start infrastructure only:
+
+   `docker compose up -d`
+
+4. Run the backend services you need:
 
    - `dotnet run --project src/Services/Identity/QuickBite.Identity.Api`
    - `dotnet run --project src/Services/Catalog/QuickBite.Catalog.Api`
@@ -22,24 +32,58 @@
    - `dotnet run --project src/Services/Delivery/QuickBite.Delivery.Api`
    - `dotnet run --project src/Gateway/QuickBite.Gateway`
 
-The service startup path uses `Database.EnsureCreated()` for the initial developer experience.
+5. Use the development appsettings that target:
+
+   - SQL Server on `localhost:1433`
+   - Kafka on `localhost:9092`
+
+### Mode B: full-stack container parity
+
+Use this mode when validating image builds, container networking, and startup flow.
+
+1. Copy `.env.example` to `.env`.
+2. Start the full stack:
+
+   `docker compose -f docker-compose.yml -f docker-compose.fullstack.yml up --build`
+
+3. Confirm these endpoints:
+
+   - gateway health: `http://localhost:8080/health`
+   - gateway readiness: `http://localhost:8080/health/ready`
+   - Kafka UI: `http://localhost:8085`
+   - frontend: `http://localhost:3000`
+
+## Backend
+
+- All backend services now fail fast when required runtime configuration is missing.
+- Runtime health endpoints are exposed on:
+  - `/health`
+  - `/health/live`
+  - `/health/ready`
 
 ## Frontend
 
 1. `cd frontend/quickbite-web`
 2. `npm install`
 3. `npm run dev`
+4. `npm test`
 
-The frontend points to `VITE_API_BASE_URL`, which defaults to `http://localhost:8080`.
+The frontend validates `VITE_API_BASE_URL` and defaults to `http://localhost:8080`.
 
 ## Docker Compose
 
 1. Copy `.env.example` to `.env`.
-2. Run `docker compose up --build`.
-3. Confirm health and route behavior through the gateway.
+2. For infrastructure only, run:
+
+   `docker compose up -d`
+
+3. For full stack parity, run:
+
+   `docker compose -f docker-compose.yml -f docker-compose.fullstack.yml up --build`
 
 ## Troubleshooting
 
+- If startup fails immediately, check missing environment variables or invalid `.env` values first. Services now validate required runtime configuration on startup.
 - If SQL Server starts slowly, restart the APIs after the database container becomes healthy.
 - If Kafka consumers appear idle, check topic creation and broker reachability through Kafka UI.
 - If the frontend cannot reach APIs, verify the gateway is reachable on port `8080`.

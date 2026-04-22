@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using QuickBite.BuildingBlocks.Common;
 using QuickBite.Catalog.Application;
 using QuickBite.Catalog.Domain;
 
@@ -38,8 +39,10 @@ public static class CatalogInfrastructureServiceCollectionExtensions
 {
     public static IServiceCollection AddCatalogInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
+        var connectionString = ConfigurationGuard.GetRequiredConnectionString(configuration, "DefaultConnection");
+
         services.AddDbContext<CatalogDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+            options.UseSqlServer(connectionString));
         services.AddScoped<ICatalogService, CatalogService>();
         return services;
     }

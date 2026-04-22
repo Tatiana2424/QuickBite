@@ -24,6 +24,34 @@ public sealed class KafkaTopics
     public string DeliveryCompleted { get; set; } = "quickbite.delivery.completed";
 }
 
+public sealed class KafkaOptionsValidator : IValidateOptions<KafkaOptions>
+{
+    public ValidateOptionsResult Validate(string? name, KafkaOptions options)
+    {
+        if (string.IsNullOrWhiteSpace(options.BootstrapServers))
+        {
+            return ValidateOptionsResult.Fail("Kafka:BootstrapServers must be configured.");
+        }
+
+        var topics = options.Topics;
+        var missingTopics = new Dictionary<string, string?>
+        {
+            [nameof(topics.OrderCreated)] = topics.OrderCreated,
+            [nameof(topics.PaymentSucceeded)] = topics.PaymentSucceeded,
+            [nameof(topics.PaymentFailed)] = topics.PaymentFailed,
+            [nameof(topics.DeliveryAssigned)] = topics.DeliveryAssigned,
+            [nameof(topics.DeliveryCompleted)] = topics.DeliveryCompleted
+        }
+        .Where(pair => string.IsNullOrWhiteSpace(pair.Value))
+        .Select(pair => pair.Key)
+        .ToArray();
+
+        return missingTopics.Length > 0
+            ? ValidateOptionsResult.Fail($"Kafka topic names must be configured. Missing: {string.Join(", ", missingTopics)}.")
+            : ValidateOptionsResult.Success;
+    }
+}
+
 public interface IKafkaProducer
 {
     Task PublishAsync<T>(string topic, T message, CancellationToken cancellationToken = default)
@@ -133,7 +161,10 @@ public static class KafkaServiceCollectionExtensions
 {
     public static IServiceCollection AddKafkaInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<KafkaOptions>(configuration.GetSection("Kafka"));
+        services.AddSingleton<IValidateOptions<KafkaOptions>, KafkaOptionsValidator>();
+        services.AddOptions<KafkaOptions>()
+            .Bind(configuration.GetSection("Kafka"))
+            .ValidateOnStart();
         services.AddSingleton<IKafkaProducer, KafkaProducer>();
         return services;
     }

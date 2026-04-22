@@ -3,6 +3,7 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using QuickBite.BuildingBlocks.Common;
 using QuickBite.BuildingBlocks.Observability;
 using QuickBite.Identity.Api.Controllers;
 using QuickBite.Identity.Application;
@@ -20,7 +21,13 @@ builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-var jwt = builder.Configuration.GetSection("Jwt").Get<JwtOptions>() ?? new JwtOptions();
+var jwt = new JwtOptions
+{
+    Issuer = ConfigurationGuard.GetRequiredValue(builder.Configuration, "Jwt:Issuer"),
+    Audience = ConfigurationGuard.GetRequiredValue(builder.Configuration, "Jwt:Audience"),
+    Key = ConfigurationGuard.GetRequiredValue(builder.Configuration, "Jwt:Key")
+};
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -51,5 +58,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHealthChecks("/health");
+app.MapHealthChecks("/health/live");
+app.MapHealthChecks("/health/ready");
 
 app.Run();

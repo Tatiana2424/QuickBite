@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using QuickBite.BuildingBlocks.Common;
 using QuickBite.BuildingBlocks.Contracts;
 using QuickBite.BuildingBlocks.Kafka;
 using QuickBite.Payments.Application;
@@ -31,8 +32,10 @@ public static class PaymentsInfrastructureServiceCollectionExtensions
 {
     public static IServiceCollection AddPaymentsInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
+        var connectionString = ConfigurationGuard.GetRequiredConnectionString(configuration, "DefaultConnection");
+
         services.AddDbContext<PaymentsDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+            options.UseSqlServer(connectionString));
         services.AddKafkaInfrastructure(configuration);
         services.AddScoped<IPaymentReadService, PaymentReadService>();
         services.AddHostedService<OrderCreatedConsumer>();

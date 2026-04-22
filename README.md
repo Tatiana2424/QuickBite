@@ -49,27 +49,66 @@ All services expose `GET /health`.
 
 ## Running locally
 
-### Docker Compose
+### Local runtime modes
+
+QuickBite now supports two recommended local run modes.
+
+#### Mode A: infrastructure only
+
+Use this mode for the fastest development loop. SQL Server and Kafka run in Docker, while the APIs, gateway, and frontend run from the host machine.
 
 1. Copy `.env.example` to `.env` and adjust values if needed.
-2. Run `docker compose up --build`.
+2. Start shared infrastructure:
+
+   `docker compose up -d`
+
+3. Start backend projects from the host:
+
+   - `dotnet run --project src/Services/Identity/QuickBite.Identity.Api`
+   - `dotnet run --project src/Services/Catalog/QuickBite.Catalog.Api`
+   - `dotnet run --project src/Services/Orders/QuickBite.Orders.Api`
+   - `dotnet run --project src/Services/Payments/QuickBite.Payments.Api`
+   - `dotnet run --project src/Services/Delivery/QuickBite.Delivery.Api`
+   - `dotnet run --project src/Gateway/QuickBite.Gateway`
+
+4. Start the frontend from the host:
+
+   - `cd frontend/quickbite-web`
+   - `npm install`
+   - `npm run dev`
+
+#### Mode B: full-stack container parity
+
+Use this mode when validating the full containerized experience.
+
+1. Copy `.env.example` to `.env` and adjust values if needed.
+2. Start the full stack:
+
+   `docker compose -f docker-compose.yml -f docker-compose.fullstack.yml up --build`
+
 3. Open:
    - Gateway: `http://localhost:8080/health`
+   - Gateway readiness: `http://localhost:8080/health/ready`
    - Kafka UI: `http://localhost:8085`
    - Frontend: `http://localhost:3000`
 
 ### Backend services from the repo root
 
 1. Restore packages with `dotnet restore QuickBite.sln`.
-2. Start SQL Server and Kafka locally or with Compose.
+2. Start SQL Server and Kafka locally or with `docker compose up -d`.
 3. Run each API project from `src/Services/*/*Api` and the gateway from `src/Gateway/QuickBite.Gateway`.
 4. Development appsettings target `localhost` for SQL Server and Kafka.
+5. Every service now exposes:
+   - `/health`
+   - `/health/live`
+   - `/health/ready`
 
 ### Frontend
 
 1. Install dependencies in `frontend/quickbite-web` with `npm install`.
 2. Copy `frontend/quickbite-web/.env.example` to `.env`.
 3. Run `npm run dev`.
+4. Run `npm test` for frontend runtime/config tests.
 
 ## Event flow
 
@@ -87,6 +126,7 @@ This initial version focuses on architecture, wiring, and developer experience:
 - Each service has its own DbContext and database.
 - Catalog and Delivery seed development data.
 - The frontend is intentionally lightweight but already points at the gateway.
+- Local development now supports both infra-only and full-stack containerized workflows.
 
 ## Next steps
 

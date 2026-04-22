@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using QuickBite.BuildingBlocks.Common;
 using QuickBite.Identity.Application;
 using QuickBite.Identity.Domain;
 
@@ -37,13 +38,48 @@ public sealed class JwtOptions
     public string Key { get; set; } = "quickbite-super-secret-development-key-change-me";
 }
 
+public sealed class JwtOptionsValidator : IValidateOptions<JwtOptions>
+{
+    public ValidateOptionsResult Validate(string? name, JwtOptions options)
+    {
+        var missing = new List<string>();
+        if (string.IsNullOrWhiteSpace(options.Issuer))
+        {
+            missing.Add(nameof(options.Issuer));
+        }
+
+        if (string.IsNullOrWhiteSpace(options.Audience))
+        {
+            missing.Add(nameof(options.Audience));
+        }
+
+        if (string.IsNullOrWhiteSpace(options.Key))
+        {
+            missing.Add(nameof(options.Key));
+        }
+        else if (options.Key.Length < 32)
+        {
+            return ValidateOptionsResult.Fail("Jwt:Key must be at least 32 characters long.");
+        }
+
+        return missing.Count > 0
+            ? ValidateOptionsResult.Fail($"Jwt configuration is incomplete. Missing: {string.Join(", ", missing)}.")
+            : ValidateOptionsResult.Success;
+    }
+}
+
 public static class IdentityInfrastructureServiceCollectionExtensions
 {
     public static IServiceCollection AddIdentityInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<JwtOptions>(configuration.GetSection("Jwt"));
+        var connectionString = ConfigurationGuard.GetRequiredConnectionString(configuration, "DefaultConnection");
+
+        services.AddSingleton<IValidateOptions<JwtOptions>, JwtOptionsValidator>();
+        services.AddOptions<JwtOptions>()
+            .Bind(configuration.GetSection("Jwt"))
+            .ValidateOnStart();
         services.AddDbContext<IdentityDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+            options.UseSqlServer(connectionString));
         services.AddScoped<IAuthService, AuthService>();
         return services;
     }

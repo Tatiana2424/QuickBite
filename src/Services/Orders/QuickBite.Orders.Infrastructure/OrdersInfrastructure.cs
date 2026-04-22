@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using QuickBite.BuildingBlocks.Common;
 using QuickBite.BuildingBlocks.Contracts;
 using QuickBite.BuildingBlocks.Kafka;
 using QuickBite.Orders.Application;
@@ -38,8 +39,10 @@ public static class OrdersInfrastructureServiceCollectionExtensions
 {
     public static IServiceCollection AddOrdersInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
+        var connectionString = ConfigurationGuard.GetRequiredConnectionString(configuration, "DefaultConnection");
+
         services.AddDbContext<OrdersDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+            options.UseSqlServer(connectionString));
         services.AddKafkaInfrastructure(configuration);
         services.AddScoped<IOrderService, OrderService>();
         return services;

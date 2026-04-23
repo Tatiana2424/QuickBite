@@ -13,6 +13,7 @@ services:
       Jwt__Issuer: ${JWT_ISSUER:-QuickBite}
       Jwt__Audience: ${JWT_AUDIENCE:-QuickBite.Web}
       Jwt__Key: ${JWT_KEY:-quickbite-super-secret-development-key-change-me}
+      Kafka__Enabled: "true"
       Kafka__BootstrapServers: kafka:29092
     ports:
       - "${IDENTITY_PORT:-5001}:8080"
@@ -28,6 +29,7 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=QuickBiteCatalogDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong!Passw0rd};TrustServerCertificate=True
+      Kafka__Enabled: "true"
       Kafka__BootstrapServers: kafka:29092
     ports:
       - "${CATALOG_PORT:-5002}:8080"
@@ -43,6 +45,7 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=QuickBiteOrdersDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong!Passw0rd};TrustServerCertificate=True
+      Kafka__Enabled: "true"
       Kafka__BootstrapServers: kafka:29092
     ports:
       - "${ORDERS_PORT:-5003}:8080"
@@ -58,6 +61,7 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=QuickBitePaymentsDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong!Passw0rd};TrustServerCertificate=True
+      Kafka__Enabled: "true"
       Kafka__BootstrapServers: kafka:29092
     ports:
       - "${PAYMENTS_PORT:-5004}:8080"
@@ -73,6 +77,7 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=QuickBiteDeliveryDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong!Passw0rd};TrustServerCertificate=True
+      Kafka__Enabled: "true"
       Kafka__BootstrapServers: kafka:29092
     ports:
       - "${DELIVERY_PORT:-5005}:8080"

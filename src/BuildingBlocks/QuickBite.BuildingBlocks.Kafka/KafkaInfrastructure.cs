@@ -11,6 +11,7 @@ namespace QuickBite.BuildingBlocks.Kafka;
 
 public sealed class KafkaOptions
 {
+    public bool Enabled { get; set; } = true;
     public string BootstrapServers { get; set; } = "localhost:9092";
     public KafkaTopics Topics { get; set; } = new();
 }
@@ -28,6 +29,11 @@ public sealed class KafkaOptionsValidator : IValidateOptions<KafkaOptions>
 {
     public ValidateOptionsResult Validate(string? name, KafkaOptions options)
     {
+        if (!options.Enabled)
+        {
+            return ValidateOptionsResult.Success;
+        }
+
         if (string.IsNullOrWhiteSpace(options.BootstrapServers))
         {
             return ValidateOptionsResult.Fail("Kafka:BootstrapServers must be configured.");
@@ -56,6 +62,20 @@ public interface IKafkaProducer
 {
     Task PublishAsync<T>(string topic, T message, CancellationToken cancellationToken = default)
         where T : IIntegrationEvent;
+}
+
+public sealed class NoOpKafkaProducer(ILogger<NoOpKafkaProducer> logger) : IKafkaProducer
+{
+    public Task PublishAsync<T>(string topic, T message, CancellationToken cancellationToken = default)
+        where T : IIntegrationEvent
+    {
+        logger.LogInformation(
+            "Kafka publishing is disabled. Skipping event {EventType} for topic {TopicName}.",
+            message.EventType,
+            topic);
+
+        return Task.CompletedTask;
+    }
 }
 
 public sealed class KafkaProducer : IKafkaProducer, IDisposable
@@ -106,6 +126,12 @@ public abstract class KafkaConsumerBackgroundService<T> : BackgroundService wher
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (!_options.Enabled)
+        {
+            _logger.LogInformation("Kafka consumer for topic {TopicName} is disabled in the current environment.", TopicName);
+            return Task.CompletedTask;
+        }
+
         return Task.Run(async () =>
         {
             var config = new ConsumerConfig
@@ -165,7 +191,13 @@ public static class KafkaServiceCollectionExtensions
         services.AddOptions<KafkaOptions>()
             .Bind(configuration.GetSection("Kafka"))
             .ValidateOnStart();
-        services.AddSingleton<IKafkaProducer, KafkaProducer>();
+        services.AddSingleton<IKafkaProducer>(serviceProvider =>
+        {
+            var options = serviceProvider.GetRequiredService<IOptions<KafkaOptions>>().Value;
+            return options.Enabled
+                ? new KafkaProducer(serviceProvider.GetRequiredService<IOptions<KafkaOptions>>())
+                : new NoOpKafkaProducer(serviceProvider.GetRequiredService<ILogger<NoOpKafkaProducer>>());
+        });
         return services;
     }
 }

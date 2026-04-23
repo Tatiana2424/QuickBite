@@ -4,7 +4,8 @@
 
 - .NET SDK 8 compatible environment
 - Node.js 20+ and npm
-- Docker Desktop or another Docker engine
+- Docker Desktop or another Docker engine for the Docker-backed workflows
+- Windows LocalDB if you want to use the no-Docker host fallback
 
 ## Local runtime modes
 
@@ -37,6 +38,33 @@ Use this mode for everyday development. Shared infrastructure runs in Docker, wh
    - SQL Server on `localhost:1433`
    - Kafka on `localhost:9092`
 
+### Mode A2: Windows host mode without Docker
+
+Use this mode when Docker is unavailable. It is a Windows-only fallback that uses LocalDB for persistence and keeps Kafka disabled in `Development` so the full UI stack can still start.
+
+1. Start the stack:
+
+   `powershell -ExecutionPolicy Bypass -File .\scripts\start-local.ps1`
+
+2. Open:
+
+   - frontend: `http://localhost:3000`
+   - gateway: `http://localhost:8080`
+
+3. Stop the stack:
+
+   `powershell -ExecutionPolicy Bypass -File .\scripts\stop-local.ps1`
+
+4. Expected local ports:
+
+   - Identity: `5001`
+   - Catalog: `5002`
+   - Orders: `5003`
+   - Payments: `5004`
+   - Delivery: `5005`
+   - Gateway: `8080`
+   - Frontend: `3000`
+
 ### Mode B: full-stack container parity
 
 Use this mode when validating image builds, container networking, and startup flow.
@@ -56,6 +84,7 @@ Use this mode when validating image builds, container networking, and startup fl
 ## Backend
 
 - All backend services now fail fast when required runtime configuration is missing.
+- Host-mode development now uses fixed localhost ports that match the gateway routes.
 - Runtime health endpoints are exposed on:
   - `/health`
   - `/health/live`
@@ -84,6 +113,7 @@ The frontend validates `VITE_API_BASE_URL` and defaults to `http://localhost:808
 ## Troubleshooting
 
 - If startup fails immediately, check missing environment variables or invalid `.env` values first. Services now validate required runtime configuration on startup.
+- If you are using Windows host mode, make sure `sqllocaldb` is installed and `scripts/start-local.ps1` is running the services with the LocalDB connection strings.
 - If SQL Server starts slowly, restart the APIs after the database container becomes healthy.
-- If Kafka consumers appear idle, check topic creation and broker reachability through Kafka UI.
+- If Kafka consumers appear idle in the Docker-backed modes, check topic creation and broker reachability through Kafka UI.
 - If the frontend cannot reach APIs, verify the gateway is reachable on port `8080`.

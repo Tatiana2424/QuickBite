@@ -51,7 +51,7 @@ All services expose `GET /health`.
 
 ### Local runtime modes
 
-QuickBite now supports two recommended local run modes.
+QuickBite now supports two recommended local run modes plus a Windows host-mode fallback.
 
 #### Mode A: infrastructure only
 
@@ -77,6 +77,23 @@ Use this mode for the fastest development loop. SQL Server and Kafka run in Dock
    - `npm install`
    - `npm run dev`
 
+#### Mode A2: Windows host mode without Docker
+
+Use this mode when Docker is unavailable on a Windows machine. It uses LocalDB for the service databases, disables Kafka in `Development`, and starts the APIs plus gateway on the fixed localhost ports expected by the frontend.
+
+1. Ensure `sqllocaldb` is available.
+2. Start everything:
+
+   `powershell -ExecutionPolicy Bypass -File .\scripts\start-local.ps1`
+
+3. Stop everything:
+
+   `powershell -ExecutionPolicy Bypass -File .\scripts\stop-local.ps1`
+
+4. Open:
+   - Frontend: `http://localhost:3000`
+   - Gateway: `http://localhost:8080`
+
 #### Mode B: full-stack container parity
 
 Use this mode when validating the full containerized experience.
@@ -96,9 +113,10 @@ Use this mode when validating the full containerized experience.
 
 1. Restore packages with `dotnet restore QuickBite.sln`.
 2. Start SQL Server and Kafka locally or with `docker compose up -d`.
-3. Run each API project from `src/Services/*/*Api` and the gateway from `src/Gateway/QuickBite.Gateway`.
-4. Development appsettings target `localhost` for SQL Server and Kafka.
-5. Every service now exposes:
+3. On Windows without Docker, you can use `scripts/start-local.ps1` instead of the Docker-backed workflow.
+4. Run each API project from `src/Services/*/*Api` and the gateway from `src/Gateway/QuickBite.Gateway`.
+5. Development appsettings use fixed localhost ports and keep Kafka disabled by default for host-mode startup.
+6. Every service now exposes:
    - `/health`
    - `/health/live`
    - `/health/ready`

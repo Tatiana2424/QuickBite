@@ -12,6 +12,7 @@ public sealed class KafkaOptionsValidatorTests
     {
         var result = _validator.Validate(Options.DefaultName, new KafkaOptions
         {
+            Enabled = true,
             BootstrapServers = "localhost:9092",
             Topics = new KafkaTopics
             {
@@ -27,10 +28,24 @@ public sealed class KafkaOptionsValidatorTests
     }
 
     [Fact]
+    public void Validate_returns_success_when_kafka_is_disabled()
+    {
+        var result = _validator.Validate(Options.DefaultName, new KafkaOptions
+        {
+            Enabled = false,
+            BootstrapServers = "",
+            Topics = new KafkaTopics()
+        });
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
     public void Validate_fails_when_bootstrap_servers_is_missing()
     {
         var result = _validator.Validate(Options.DefaultName, new KafkaOptions
         {
+            Enabled = true,
             BootstrapServers = ""
         });
 
@@ -43,6 +58,7 @@ public sealed class KafkaOptionsValidatorTests
     {
         var result = _validator.Validate(Options.DefaultName, new KafkaOptions
         {
+            Enabled = true,
             BootstrapServers = "localhost:9092",
             Topics = new KafkaTopics
             {

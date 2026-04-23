@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -41,6 +42,8 @@ public static class OrdersInfrastructureServiceCollectionExtensions
     {
         var connectionString = ConfigurationGuard.GetRequiredConnectionString(configuration, "DefaultConnection");
 
+        services.AddOptions<DatabaseInitializationOptions>()
+            .Bind(configuration.GetSection("DatabaseInitialization"));
         services.AddDbContext<OrdersDbContext>(options =>
             options.UseSqlServer(connectionString));
         services.AddKafkaInfrastructure(configuration);
@@ -50,9 +53,7 @@ public static class OrdersInfrastructureServiceCollectionExtensions
 
     public static async Task EnsureOrdersDatabaseAsync(this IServiceProvider serviceProvider)
     {
-        await using var scope = serviceProvider.CreateAsyncScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<OrdersDbContext>();
-        await dbContext.Database.EnsureCreatedAsync();
+        await serviceProvider.InitializeDatabaseAsync<OrdersDbContext>();
     }
 }
 
@@ -95,4 +96,14 @@ internal sealed class OrderService(
         order.Status.ToString(),
         order.TotalAmount,
         order.Items.Select(x => new OrderItemDto(x.MenuItemId, x.Name, x.Quantity, x.UnitPrice)).ToList());
+}
+
+public sealed class OrdersDbContextFactory : IDesignTimeDbContextFactory<OrdersDbContext>
+{
+    public OrdersDbContext CreateDbContext(string[] args)
+    {
+        var optionsBuilder = new DbContextOptionsBuilder<OrdersDbContext>();
+        optionsBuilder.UseSqlServer(DesignTimeSqlServer.ResolveConnectionString("QuickBiteOrdersDb"));
+        return new OrdersDbContext(optionsBuilder.Options);
+    }
 }

@@ -1,6 +1,6 @@
 # QuickBite
 
-QuickBite is an event-driven food delivery starter platform built as a .NET 8 monorepo. The repository contains five backend microservices, a YARP gateway, a React frontend shell, shared building blocks, Docker Compose infrastructure, and test-project scaffolding so development can continue from a clean professional baseline.
+QuickBite is an event-driven food delivery starter platform built as a .NET 8 monorepo. The repository contains five backend microservices, a YARP gateway, a React frontend shell, shared building blocks, Docker Compose infrastructure, checked-in EF Core migrations, and test-project scaffolding so development can continue from a clean professional baseline.
 
 ## What is included
 
@@ -12,6 +12,7 @@ QuickBite is an event-driven food delivery starter platform built as a .NET 8 mo
 - YARP gateway with service routing.
 - React + TypeScript frontend wired to the gateway.
 - SQL Server + Kafka + Kafka UI orchestration with Docker Compose.
+- Database-per-service migrations and environment-aware seed strategy.
 
 ## Solution structure
 
@@ -77,6 +78,10 @@ Use this mode for the fastest development loop. SQL Server and Kafka run in Dock
    - `npm install`
    - `npm run dev`
 
+Before using EF Core CLI commands locally:
+
+- `dotnet tool restore`
+
 #### Mode A2: Windows host mode without Docker
 
 Use this mode when Docker is unavailable on a Windows machine. It uses LocalDB for the service databases, disables Kafka in `Development`, and starts the APIs plus gateway on the fixed localhost ports expected by the frontend.
@@ -112,11 +117,12 @@ Use this mode when validating the full containerized experience.
 ### Backend services from the repo root
 
 1. Restore packages with `dotnet restore QuickBite.sln`.
-2. Start SQL Server and Kafka locally or with `docker compose up -d`.
-3. On Windows without Docker, you can use `scripts/start-local.ps1` instead of the Docker-backed workflow.
-4. Run each API project from `src/Services/*/*Api` and the gateway from `src/Gateway/QuickBite.Gateway`.
-5. Development appsettings use fixed localhost ports and keep Kafka disabled by default for host-mode startup.
-6. Every service now exposes:
+2. Restore the EF Core local tool with `dotnet tool restore`.
+3. Start SQL Server and Kafka locally or with `docker compose up -d`.
+4. On Windows without Docker, you can use `scripts/start-local.ps1` instead of the Docker-backed workflow.
+5. Run each API project from `src/Services/*/*Api` and the gateway from `src/Gateway/QuickBite.Gateway`.
+6. Development appsettings use fixed localhost ports, apply migrations automatically, and keep Kafka disabled by default for host-mode startup.
+7. Every service now exposes:
    - `/health`
    - `/health/live`
    - `/health/ready`
@@ -135,20 +141,22 @@ Use this mode when validating the full containerized experience.
 3. The Delivery service consumes `payment.succeeded`, creates a delivery, assigns a placeholder courier, and publishes `delivery.assigned`.
 
 See `docs/architecture.md`, `docs/event-flow.md`, and `docs/local-development.md` for more detail.
+Database details are documented in `docs/database-architecture.md`.
 
 ## Current status
 
 This initial version focuses on architecture, wiring, and developer experience:
 
 - Shared contracts and Kafka abstractions are in place.
-- Each service has its own DbContext and database.
-- Catalog and Delivery seed development data.
+- Each service has its own DbContext, initial migration, and owned database.
+- Identity, Catalog, and Delivery seed development data through startup configuration.
 - The frontend is intentionally lightweight but already points at the gateway.
 - Local development now supports both infra-only and full-stack containerized workflows.
+- The repository includes a local `dotnet-ef` tool manifest for database work.
 
 ## Next steps
 
 - Add real authentication and authorization flows to downstream services.
 - Introduce outbox and inbox reliability patterns.
 - Add richer business workflows and domain validation.
-- Add integration tests and per-service migrations.
+- Add integration tests and deeper service-specific data models.

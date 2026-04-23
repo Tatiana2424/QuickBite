@@ -34,3 +34,7 @@ QuickBite follows a database-per-service approach while using a single SQL Serve
 - `QuickBiteDeliveryDb`
 
 Each service owns its own DbContext and schema boundary. Cross-service coordination flows through Kafka contracts instead of direct database access.
+
+Database creation now follows EF Core migrations instead of `EnsureCreated()`. Development environments can apply migrations automatically and seed demo/reference data through the `DatabaseInitialization` configuration section.
+
+See `docs/database-architecture.md` for the implemented tables, seed policy, and migration workflow.

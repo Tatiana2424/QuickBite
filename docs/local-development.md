@@ -19,12 +19,16 @@ Use this mode for everyday development. Shared infrastructure runs in Docker, wh
 
    `dotnet restore QuickBite.sln`
 
-2. Copy `.env.example` to `.env`.
-3. Start infrastructure only:
+2. Restore local tools:
+
+   `dotnet tool restore`
+
+3. Copy `.env.example` to `.env`.
+4. Start infrastructure only:
 
    `docker compose up -d`
 
-4. Run the backend services you need:
+5. Run the backend services you need:
 
    - `dotnet run --project src/Services/Identity/QuickBite.Identity.Api`
    - `dotnet run --project src/Services/Catalog/QuickBite.Catalog.Api`
@@ -33,10 +37,11 @@ Use this mode for everyday development. Shared infrastructure runs in Docker, wh
    - `dotnet run --project src/Services/Delivery/QuickBite.Delivery.Api`
    - `dotnet run --project src/Gateway/QuickBite.Gateway`
 
-5. Use the development appsettings that target:
+6. Use the development appsettings that target:
 
    - SQL Server on `localhost:1433`
    - Kafka on `localhost:9092`
+   - automatic migration application and demo-data seeding
 
 ### Mode A2: Windows host mode without Docker
 
@@ -65,6 +70,11 @@ Use this mode when Docker is unavailable. It is a Windows-only fallback that use
    - Gateway: `8080`
    - Frontend: `3000`
 
+5. Notes:
+
+   - LocalDB databases are migrated automatically on startup.
+   - Legacy local databases created before the migration-based setup are recreated automatically in development.
+
 ### Mode B: full-stack container parity
 
 Use this mode when validating image builds, container networking, and startup flow.
@@ -85,10 +95,18 @@ Use this mode when validating image builds, container networking, and startup fl
 
 - All backend services now fail fast when required runtime configuration is missing.
 - Host-mode development now uses fixed localhost ports that match the gateway routes.
+- Databases are created through EF Core migrations instead of `EnsureCreated()`.
 - Runtime health endpoints are exposed on:
   - `/health`
   - `/health/live`
   - `/health/ready`
+
+## Database workflow
+
+- Restore the local EF tool with `dotnet tool restore`.
+- Each service owns its own migration history in `src/Services/*/*Infrastructure/Migrations`.
+- Development startup applies migrations automatically when `DatabaseInitialization:ApplyMigrationsOnStartup` is enabled.
+- Demo data is controlled through `DatabaseInitialization:SeedDemoData`.
 
 ## Frontend
 
@@ -114,6 +132,7 @@ The frontend validates `VITE_API_BASE_URL` and defaults to `http://localhost:808
 
 - If startup fails immediately, check missing environment variables or invalid `.env` values first. Services now validate required runtime configuration on startup.
 - If you are using Windows host mode, make sure `sqllocaldb` is installed and `scripts/start-local.ps1` is running the services with the LocalDB connection strings.
+- If a local database was created before migrations were introduced, development startup may recreate it to establish the migration baseline.
 - If SQL Server starts slowly, restart the APIs after the database container becomes healthy.
 - If Kafka consumers appear idle in the Docker-backed modes, check topic creation and broker reachability through Kafka UI.
 - If the frontend cannot reach APIs, verify the gateway is reachable on port `8080`.

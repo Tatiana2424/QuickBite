@@ -16,6 +16,9 @@ namespace QuickBite.Identity.Infrastructure;
 public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> options) : DbContext(options)
 {
     public DbSet<User> Users => Set<User>();
+    public DbSet<Role> Roles => Set<Role>();
+    public DbSet<UserRole> UserRoles => Set<UserRole>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -27,6 +30,33 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
             entity.Property(x => x.Email).HasMaxLength(256);
             entity.Property(x => x.FullName).HasMaxLength(200);
             entity.Property(x => x.PasswordHash).HasMaxLength(512);
+            entity.HasMany(x => x.UserRoles).WithOne(x => x.User).HasForeignKey(x => x.UserId);
+            entity.HasMany(x => x.RefreshTokens).WithOne(x => x.User).HasForeignKey(x => x.UserId);
+        });
+
+        modelBuilder.Entity<Role>(entity =>
+        {
+            entity.ToTable("Roles");
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => x.Name).IsUnique();
+            entity.Property(x => x.Name).HasMaxLength(100);
+            entity.Property(x => x.Description).HasMaxLength(200);
+            entity.HasMany(x => x.UserRoles).WithOne(x => x.Role).HasForeignKey(x => x.RoleId);
+        });
+
+        modelBuilder.Entity<UserRole>(entity =>
+        {
+            entity.ToTable("UserRoles");
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => new { x.UserId, x.RoleId }).IsUnique();
+        });
+
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.ToTable("RefreshTokens");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.TokenHash).HasMaxLength(512);
+            entity.HasIndex(x => x.TokenHash).IsUnique();
         });
     }
 }
@@ -75,6 +105,8 @@ public static class IdentityInfrastructureServiceCollectionExtensions
         var connectionString = ConfigurationGuard.GetRequiredConnectionString(configuration, "DefaultConnection");
 
         services.AddSingleton<IValidateOptions<JwtOptions>, JwtOptionsValidator>();
+        services.AddOptions<DatabaseInitializationOptions>()
+            .Bind(configuration.GetSection("DatabaseInitialization"));
         services.AddOptions<JwtOptions>()
             .Bind(configuration.GetSection("Jwt"))
             .ValidateOnStart();
@@ -86,9 +118,45 @@ public static class IdentityInfrastructureServiceCollectionExtensions
 
     public static async Task EnsureIdentityDatabaseAsync(this IServiceProvider serviceProvider)
     {
-        await using var scope = serviceProvider.CreateAsyncScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
-        await dbContext.Database.EnsureCreatedAsync();
+        await serviceProvider.InitializeDatabaseAsync<IdentityDbContext>(SeedAsync);
+    }
+
+    private static async Task SeedAsync(
+        IdentityDbContext dbContext,
+        DatabaseInitializationOptions options,
+        CancellationToken cancellationToken)
+    {
+        var roles = new[]
+        {
+            new Role(IdentityRoles.Customer, "Default customer role for ordering food."),
+            new Role(IdentityRoles.RestaurantAdmin, "Restaurant managers responsible for menus."),
+            new Role(IdentityRoles.Courier, "Courier role for delivery operations."),
+            new Role(IdentityRoles.PlatformAdmin, "Platform administrators with elevated access.")
+        };
+
+        foreach (var role in roles.Where(role => dbContext.Roles.All(existing => existing.Name != role.Name)))
+        {
+            dbContext.Roles.Add(role);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        if (!options.SeedDemoData || await dbContext.Users.AnyAsync(cancellationToken))
+        {
+            return;
+        }
+
+        var customerRole = await dbContext.Roles.SingleAsync(x => x.Name == IdentityRoles.Customer, cancellationToken);
+        var adminRole = await dbContext.Roles.SingleAsync(x => x.Name == IdentityRoles.PlatformAdmin, cancellationToken);
+
+        var demoCustomer = new User("customer@quickbite.local", "QuickBite Customer", PasswordHasher.Hash("Pass123!"));
+        demoCustomer.AssignRole(customerRole);
+
+        var demoAdmin = new User("admin@quickbite.local", "QuickBite Admin", PasswordHasher.Hash("Pass123!"));
+        demoAdmin.AssignRole(adminRole);
+
+        dbContext.Users.AddRange(demoCustomer, demoAdmin);
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 }
 
@@ -103,6 +171,9 @@ internal sealed class AuthService(IdentityDbContext dbContext, IOptions<JwtOptio
         }
 
         var user = new User(normalizedEmail, request.FullName, HashPassword(request.Password));
+        var customerRole = await dbContext.Roles.SingleAsync(x => x.Name == IdentityRoles.Customer, cancellationToken);
+        user.AssignRole(customerRole);
+
         dbContext.Users.Add(user);
         await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -118,14 +189,19 @@ internal sealed class AuthService(IdentityDbContext dbContext, IOptions<JwtOptio
             x => x.Email == normalizedEmail && x.PasswordHash == passwordHash,
             cancellationToken);
 
+        if (user is not null)
+        {
+            await dbContext.Entry(user)
+                .Collection(x => x.UserRoles)
+                .Query()
+                .Include(x => x.Role)
+                .LoadAsync(cancellationToken);
+        }
+
         return user is null ? null : new AuthResponse(user.Id, user.Email, user.FullName, CreateToken(user));
     }
 
-    private static string HashPassword(string password)
-    {
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
-        return Convert.ToHexString(bytes);
-    }
+    private static string HashPassword(string password) => PasswordHasher.Hash(password);
 
     private string CreateToken(User user)
     {
@@ -134,12 +210,17 @@ internal sealed class AuthService(IdentityDbContext dbContext, IOptions<JwtOptio
             new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.Key)),
             SecurityAlgorithms.HmacSha256);
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
             new Claim(JwtRegisteredClaimNames.Name, user.FullName)
         };
+
+        claims.AddRange(
+            user.UserRoles
+                .Where(x => x.Role is not null)
+                .Select(x => new Claim(ClaimTypes.Role, x.Role!.Name)));
 
         var token = new JwtSecurityToken(
             issuer: options.Issuer,
@@ -149,5 +230,14 @@ internal sealed class AuthService(IdentityDbContext dbContext, IOptions<JwtOptio
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+}
+
+internal static class PasswordHasher
+{
+    public static string Hash(string password)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
+        return Convert.ToHexString(bytes);
     }
 }

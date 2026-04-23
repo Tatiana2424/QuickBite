@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Services\Identity\QuickBite.Identity.Application\QuickBite.Identity.Application.csproj" />
+    <ProjectReference Include="..\..\src\Services\Identity\QuickBite.Identity.Domain\QuickBite.Identity.Domain.csproj" />
   </ItemGroup>
 
 </Project>

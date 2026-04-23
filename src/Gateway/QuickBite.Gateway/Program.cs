@@ -11,6 +11,8 @@ var app = builder.Build();
 
 app.UseQuickBiteObservability();
 app.MapHealthChecks("/health");
+app.MapHealthChecks("/health/live");
+app.MapHealthChecks("/health/ready");
 app.MapGet("/", () => Results.Redirect("/health"));
 app.MapReverseProxy();
 

@@ -1,0 +1,108 @@
+services:
+  quickbite.identity.api:
+    build:
+      context: .
+      dockerfile: src/Services/Identity/QuickBite.Identity.Api/Dockerfile
+    depends_on:
+      - sqlserver
+      - kafka
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=QuickBiteIdentityDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong!Passw0rd};TrustServerCertificate=True
+      Jwt__Issuer: ${JWT_ISSUER:-QuickBite}
+      Jwt__Audience: ${JWT_AUDIENCE:-QuickBite.Web}
+      Jwt__Key: ${JWT_KEY:-quickbite-super-secret-development-key-change-me}
+      Kafka__Enabled: "true"
+      Kafka__BootstrapServers: kafka:29092
+    ports:
+      - "${IDENTITY_PORT:-5001}:8080"
+
+  quickbite.catalog.api:
+    build:
+      context: .
+      dockerfile: src/Services/Catalog/QuickBite.Catalog.Api/Dockerfile
+    depends_on:
+      - sqlserver
+      - kafka
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=QuickBiteCatalogDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong!Passw0rd};TrustServerCertificate=True
+      Kafka__Enabled: "true"
+      Kafka__BootstrapServers: kafka:29092
+    ports:
+      - "${CATALOG_PORT:-5002}:8080"
+
+  quickbite.orders.api:
+    build:
+      context: .
+      dockerfile: src/Services/Orders/QuickBite.Orders.Api/Dockerfile
+    depends_on:
+      - sqlserver
+      - kafka
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=QuickBiteOrdersDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong!Passw0rd};TrustServerCertificate=True
+      Kafka__Enabled: "true"
+      Kafka__BootstrapServers: kafka:29092
+    ports:
+      - "${ORDERS_PORT:-5003}:8080"
+
+  quickbite.payments.api:
+    build:
+      context: .
+      dockerfile: src/Services/Payments/QuickBite.Payments.Api/Dockerfile
+    depends_on:
+      - sqlserver
+      - kafka
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=QuickBitePaymentsDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong!Passw0rd};TrustServerCertificate=True
+      Kafka__Enabled: "true"
+      Kafka__BootstrapServers: kafka:29092
+    ports:
+      - "${PAYMENTS_PORT:-5004}:8080"
+
+  quickbite.delivery.api:
+    build:
+      context: .
+      dockerfile: src/Services/Delivery/QuickBite.Delivery.Api/Dockerfile
+    depends_on:
+      - sqlserver
+      - kafka
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=QuickBiteDeliveryDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong!Passw0rd};TrustServerCertificate=True
+      Kafka__Enabled: "true"
+      Kafka__BootstrapServers: kafka:29092
+    ports:
+      - "${DELIVERY_PORT:-5005}:8080"
+
+  quickbite.gateway:
+    build:
+      context: .
+      dockerfile: src/Gateway/QuickBite.Gateway/Dockerfile
+    depends_on:
+      - quickbite.identity.api
+      - quickbite.catalog.api
+      - quickbite.orders.api
+      - quickbite.payments.api
+      - quickbite.delivery.api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+    ports:
+      - "${GATEWAY_PORT:-8080}:8080"
+
+  quickbite.web:
+    build:
+      context: .
+      dockerfile: frontend/quickbite-web/Dockerfile
+    depends_on:
+      - quickbite.gateway
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"

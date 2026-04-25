@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Confluent.Kafka;
+using Confluent.Kafka.Admin;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -13,16 +14,48 @@ public sealed class KafkaOptions
 {
     public bool Enabled { get; set; } = true;
     public string BootstrapServers { get; set; } = "localhost:9092";
+    public string ClientId { get; set; } = "quickbite";
+    public string Producer { get; set; } = "quickbite";
+    public short TopicReplicationFactor { get; set; } = 1;
+    public int TopicPartitionCount { get; set; } = 1;
+    public int TopicInitializationRetryCount { get; set; } = 5;
+    public int TopicInitializationRetryDelaySeconds { get; set; } = 2;
     public KafkaTopics Topics { get; set; } = new();
+    public KafkaConsumerOptions Consumer { get; set; } = new();
+    public KafkaDeadLetterOptions DeadLetter { get; set; } = new();
 }
 
 public sealed class KafkaTopics
 {
-    public string OrderCreated { get; set; } = "quickbite.order.created";
-    public string PaymentSucceeded { get; set; } = "quickbite.payment.succeeded";
-    public string PaymentFailed { get; set; } = "quickbite.payment.failed";
-    public string DeliveryAssigned { get; set; } = "quickbite.delivery.assigned";
-    public string DeliveryCompleted { get; set; } = "quickbite.delivery.completed";
+    public string OrderCreated { get; set; } = "quickbite.orders.order-created.v1";
+    public string PaymentSucceeded { get; set; } = "quickbite.payments.payment-succeeded.v1";
+    public string PaymentFailed { get; set; } = "quickbite.payments.payment-failed.v1";
+    public string DeliveryAssigned { get; set; } = "quickbite.delivery.delivery-assigned.v1";
+    public string DeliveryCompleted { get; set; } = "quickbite.delivery.delivery-completed.v1";
+
+    public IReadOnlyCollection<string> All()
+    {
+        return
+        [
+            OrderCreated,
+            PaymentSucceeded,
+            PaymentFailed,
+            DeliveryAssigned,
+            DeliveryCompleted
+        ];
+    }
+}
+
+public sealed class KafkaConsumerOptions
+{
+    public int MaxRetryAttempts { get; set; } = 3;
+    public int RetryBackoffMilliseconds { get; set; } = 500;
+}
+
+public sealed class KafkaDeadLetterOptions
+{
+    public bool Enabled { get; set; } = true;
+    public string TopicSuffix { get; set; } = ".dlq";
 }
 
 public sealed class KafkaOptionsValidator : IValidateOptions<KafkaOptions>
@@ -34,9 +67,55 @@ public sealed class KafkaOptionsValidator : IValidateOptions<KafkaOptions>
             return ValidateOptionsResult.Success;
         }
 
+        var failures = new List<string>();
         if (string.IsNullOrWhiteSpace(options.BootstrapServers))
         {
-            return ValidateOptionsResult.Fail("Kafka:BootstrapServers must be configured.");
+            failures.Add("Kafka:BootstrapServers must be configured.");
+        }
+
+        if (string.IsNullOrWhiteSpace(options.ClientId))
+        {
+            failures.Add("Kafka:ClientId must be configured.");
+        }
+
+        if (string.IsNullOrWhiteSpace(options.Producer))
+        {
+            failures.Add("Kafka:Producer must be configured.");
+        }
+
+        if (options.TopicPartitionCount <= 0)
+        {
+            failures.Add("Kafka:TopicPartitionCount must be greater than zero.");
+        }
+
+        if (options.TopicReplicationFactor <= 0)
+        {
+            failures.Add("Kafka:TopicReplicationFactor must be greater than zero.");
+        }
+
+        if (options.TopicInitializationRetryCount < 0)
+        {
+            failures.Add("Kafka:TopicInitializationRetryCount cannot be negative.");
+        }
+
+        if (options.TopicInitializationRetryDelaySeconds < 0)
+        {
+            failures.Add("Kafka:TopicInitializationRetryDelaySeconds cannot be negative.");
+        }
+
+        if (options.Consumer.MaxRetryAttempts < 0)
+        {
+            failures.Add("Kafka:Consumer:MaxRetryAttempts cannot be negative.");
+        }
+
+        if (options.Consumer.RetryBackoffMilliseconds < 0)
+        {
+            failures.Add("Kafka:Consumer:RetryBackoffMilliseconds cannot be negative.");
+        }
+
+        if (options.DeadLetter.Enabled && string.IsNullOrWhiteSpace(options.DeadLetter.TopicSuffix))
+        {
+            failures.Add("Kafka:DeadLetter:TopicSuffix must be configured when dead-letter publishing is enabled.");
         }
 
         var topics = options.Topics;
@@ -52,8 +131,25 @@ public sealed class KafkaOptionsValidator : IValidateOptions<KafkaOptions>
         .Select(pair => pair.Key)
         .ToArray();
 
-        return missingTopics.Length > 0
-            ? ValidateOptionsResult.Fail($"Kafka topic names must be configured. Missing: {string.Join(", ", missingTopics)}.")
+        if (missingTopics.Length > 0)
+        {
+            failures.Add($"Kafka topic names must be configured. Missing: {string.Join(", ", missingTopics)}.");
+        }
+
+        var duplicateTopics = topics.All()
+            .Where(topic => !string.IsNullOrWhiteSpace(topic))
+            .GroupBy(topic => topic, StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key)
+            .ToArray();
+
+        if (duplicateTopics.Length > 0)
+        {
+            failures.Add($"Kafka topic names must be unique. Duplicates: {string.Join(", ", duplicateTopics)}.");
+        }
+
+        return failures.Count > 0
+            ? ValidateOptionsResult.Fail(failures)
             : ValidateOptionsResult.Success;
     }
 }
@@ -80,29 +176,66 @@ public sealed class NoOpKafkaProducer(ILogger<NoOpKafkaProducer> logger) : IKafk
 
 public sealed class KafkaProducer : IKafkaProducer, IDisposable
 {
-    private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
+    internal static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
+    private readonly KafkaOptions _options;
     private readonly IProducer<string, string> _producer;
 
     public KafkaProducer(IOptions<KafkaOptions> options)
     {
+        _options = options.Value;
         _producer = new ProducerBuilder<string, string>(new ProducerConfig
         {
-            BootstrapServers = options.Value.BootstrapServers,
-            Acks = Acks.All
+            BootstrapServers = _options.BootstrapServers,
+            ClientId = _options.ClientId,
+            Acks = Acks.All,
+            EnableIdempotence = true,
+            MessageSendMaxRetries = 3,
+            LingerMs = 5
         }).Build();
     }
 
     public Task PublishAsync<T>(string topic, T message, CancellationToken cancellationToken = default)
         where T : IIntegrationEvent
     {
-        var envelope = new EventEnvelope<T>(Guid.NewGuid(), DateTimeOffset.UtcNow, message.EventType, message);
+        var envelope = CreateEnvelope(message, _options.Producer);
         var payload = JsonSerializer.Serialize(envelope, SerializerOptions);
 
         return _producer.ProduceAsync(topic, new Message<string, string>
         {
-            Key = envelope.EventId.ToString("N"),
-            Value = payload
+            Key = ResolveMessageKey(message, envelope.EventId),
+            Value = payload,
+            Headers =
+            [
+                new Header("event-id", envelope.EventId.ToString("N").ToUtf8Bytes()),
+                new Header("event-type", envelope.EventType.ToUtf8Bytes()),
+                new Header("event-version", envelope.EventVersion.ToString().ToUtf8Bytes()),
+                new Header("correlation-id", envelope.CorrelationId.ToString("N").ToUtf8Bytes())
+            ]
         }, cancellationToken);
+    }
+
+    internal static EventEnvelope<T> CreateEnvelope<T>(T message, string producer)
+        where T : IIntegrationEvent
+    {
+        return new EventEnvelope<T>(
+            Guid.NewGuid(),
+            message.EventType,
+            message.EventVersion,
+            DateTimeOffset.UtcNow,
+            Guid.NewGuid(),
+            null,
+            producer,
+            message);
+    }
+
+    internal static string ResolveMessageKey<T>(T message, Guid fallback)
+    {
+        var orderIdProperty = typeof(T).GetProperty("OrderId");
+        var orderId = orderIdProperty?.GetValue(message);
+
+        return orderId is Guid guid && guid != Guid.Empty
+            ? guid.ToString("N")
+            : fallback.ToString("N");
     }
 
     public void Dispose() => _producer.Dispose();
@@ -110,7 +243,6 @@ public sealed class KafkaProducer : IKafkaProducer, IDisposable
 
 public abstract class KafkaConsumerBackgroundService<T> : BackgroundService where T : IIntegrationEvent
 {
-    private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
     private readonly KafkaOptions _options;
     private readonly ILogger _logger;
 
@@ -134,15 +266,26 @@ public abstract class KafkaConsumerBackgroundService<T> : BackgroundService wher
 
         return Task.Run(async () =>
         {
-            var config = new ConsumerConfig
+            var consumerConfig = new ConsumerConfig
             {
                 BootstrapServers = _options.BootstrapServers,
+                ClientId = $"{_options.ClientId}-{GroupId}",
                 GroupId = GroupId,
                 AutoOffsetReset = AutoOffsetReset.Earliest,
-                EnableAutoCommit = true
+                EnableAutoCommit = false,
+                EnableAutoOffsetStore = false
             };
 
-            using var consumer = new ConsumerBuilder<Ignore, string>(config).Build();
+            var producerConfig = new ProducerConfig
+            {
+                BootstrapServers = _options.BootstrapServers,
+                ClientId = $"{_options.ClientId}-{GroupId}-dlq-producer",
+                Acks = Acks.All,
+                EnableIdempotence = true
+            };
+
+            using var consumer = new ConsumerBuilder<Ignore, string>(consumerConfig).Build();
+            using var deadLetterProducer = new ProducerBuilder<string, string>(producerConfig).Build();
             consumer.Subscribe(TopicName);
 
             while (!stoppingToken.IsCancellationRequested)
@@ -155,14 +298,12 @@ public abstract class KafkaConsumerBackgroundService<T> : BackgroundService wher
                         continue;
                     }
 
-                    var envelope = JsonSerializer.Deserialize<EventEnvelope<T>>(result.Message.Value, SerializerOptions);
-                    if (envelope is null)
+                    var processed = await ProcessMessageAsync(result, deadLetterProducer, stoppingToken);
+                    if (processed)
                     {
-                        _logger.LogWarning("Kafka message on topic {TopicName} could not be deserialized.", TopicName);
-                        continue;
+                        consumer.StoreOffset(result);
+                        consumer.Commit(result);
                     }
-
-                    await HandleAsync(envelope, stoppingToken);
                 }
                 catch (OperationCanceledException)
                 {
@@ -171,15 +312,195 @@ public abstract class KafkaConsumerBackgroundService<T> : BackgroundService wher
                 catch (ConsumeException exception)
                 {
                     _logger.LogError(exception, "Kafka consume error on topic {TopicName}.", TopicName);
-                    await Task.Delay(TimeSpan.FromSeconds(3), stoppingToken);
+                    await DelayAsync(stoppingToken);
                 }
                 catch (Exception exception)
                 {
                     _logger.LogError(exception, "Unexpected Kafka consumer failure on topic {TopicName}.", TopicName);
-                    await Task.Delay(TimeSpan.FromSeconds(3), stoppingToken);
+                    await DelayAsync(stoppingToken);
                 }
             }
         }, stoppingToken);
+    }
+
+    private async Task<bool> ProcessMessageAsync(
+        ConsumeResult<Ignore, string> result,
+        IProducer<string, string> deadLetterProducer,
+        CancellationToken cancellationToken)
+    {
+        EventEnvelope<T>? envelope;
+        try
+        {
+            envelope = JsonSerializer.Deserialize<EventEnvelope<T>>(result.Message.Value, KafkaProducer.SerializerOptions);
+        }
+        catch (JsonException exception)
+        {
+            _logger.LogError(exception, "Kafka message on topic {TopicName} could not be deserialized.", TopicName);
+            return await PublishDeadLetterAsync(result, deadLetterProducer, exception, cancellationToken);
+        }
+
+        if (envelope is null)
+        {
+            _logger.LogWarning("Kafka message on topic {TopicName} deserialized to null.", TopicName);
+            return await PublishDeadLetterAsync(
+                result,
+                deadLetterProducer,
+                new InvalidOperationException("Kafka message deserialized to null."),
+                cancellationToken);
+        }
+
+        for (var attempt = 1; attempt <= _options.Consumer.MaxRetryAttempts + 1; attempt++)
+        {
+            try
+            {
+                await HandleAsync(envelope, cancellationToken);
+                return true;
+            }
+            catch (Exception exception) when (attempt <= _options.Consumer.MaxRetryAttempts)
+            {
+                _logger.LogWarning(
+                    exception,
+                    "Kafka handler attempt {AttemptNumber} failed for event {EventType} from topic {TopicName}.",
+                    attempt,
+                    envelope.EventType,
+                    TopicName);
+
+                await DelayAsync(cancellationToken);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "Kafka handler failed permanently for event {EventType} from topic {TopicName}.",
+                    envelope.EventType,
+                    TopicName);
+
+                return await PublishDeadLetterAsync(result, deadLetterProducer, exception, cancellationToken);
+            }
+        }
+
+        return false;
+    }
+
+    private async Task<bool> PublishDeadLetterAsync(
+        ConsumeResult<Ignore, string> result,
+        IProducer<string, string> deadLetterProducer,
+        Exception exception,
+        CancellationToken cancellationToken)
+    {
+        if (!_options.DeadLetter.Enabled)
+        {
+            return false;
+        }
+
+        var deadLetterTopic = $"{TopicName}{_options.DeadLetter.TopicSuffix}";
+        var deadLetter = new DeadLetterMessage(
+            TopicName,
+            result.Partition.Value,
+            result.Offset.Value,
+            GroupId,
+            exception.GetType().Name,
+            exception.Message,
+            DateTimeOffset.UtcNow,
+            result.Message.Value);
+
+        await deadLetterProducer.ProduceAsync(deadLetterTopic, new Message<string, string>
+        {
+            Key = $"{TopicName}-{result.Partition.Value}-{result.Offset.Value}",
+            Value = JsonSerializer.Serialize(deadLetter, KafkaProducer.SerializerOptions)
+        }, cancellationToken);
+
+        _logger.LogWarning(
+            "Kafka message from topic {TopicName} offset {Offset} was moved to dead-letter topic {DeadLetterTopic}.",
+            TopicName,
+            result.Offset.Value,
+            deadLetterTopic);
+
+        return true;
+    }
+
+    private Task DelayAsync(CancellationToken cancellationToken)
+    {
+        return _options.Consumer.RetryBackoffMilliseconds == 0
+            ? Task.CompletedTask
+            : Task.Delay(TimeSpan.FromMilliseconds(_options.Consumer.RetryBackoffMilliseconds), cancellationToken);
+    }
+}
+
+public sealed record DeadLetterMessage(
+    string SourceTopic,
+    int SourcePartition,
+    long SourceOffset,
+    string ConsumerGroup,
+    string ErrorType,
+    string ErrorMessage,
+    DateTimeOffset FailedAtUtc,
+    string RawMessage);
+
+public sealed class KafkaTopicInitializer(IOptions<KafkaOptions> options, ILogger<KafkaTopicInitializer> logger) : IHostedService
+{
+    public async Task StartAsync(CancellationToken cancellationToken)
+    {
+        var kafkaOptions = options.Value;
+        if (!kafkaOptions.Enabled)
+        {
+            return;
+        }
+
+        using var adminClient = new AdminClientBuilder(new AdminClientConfig
+        {
+            BootstrapServers = kafkaOptions.BootstrapServers,
+            ClientId = $"{kafkaOptions.ClientId}-topic-initializer"
+        }).Build();
+
+        var topicNames = kafkaOptions.Topics.All()
+            .Concat(kafkaOptions.DeadLetter.Enabled
+                ? kafkaOptions.Topics.All().Select(topic => $"{topic}{kafkaOptions.DeadLetter.TopicSuffix}")
+                : [])
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        var specifications = topicNames.Select(topic => new TopicSpecification
+        {
+            Name = topic,
+            NumPartitions = kafkaOptions.TopicPartitionCount,
+            ReplicationFactor = kafkaOptions.TopicReplicationFactor
+        });
+
+        for (var attempt = 1; attempt <= kafkaOptions.TopicInitializationRetryCount + 1; attempt++)
+        {
+            try
+            {
+                await adminClient.CreateTopicsAsync(specifications, new CreateTopicsOptions
+                {
+                    RequestTimeout = TimeSpan.FromSeconds(15)
+                });
+                return;
+            }
+            catch (CreateTopicsException exception) when (AllTopicsAlreadyExist(exception))
+            {
+                logger.LogInformation("Kafka topics already exist.");
+                return;
+            }
+            catch (Exception exception) when (attempt <= kafkaOptions.TopicInitializationRetryCount && !cancellationToken.IsCancellationRequested)
+            {
+                logger.LogWarning(
+                    exception,
+                    "Kafka topic initialization attempt {AttemptNumber} failed. Retrying in {DelaySeconds} seconds.",
+                    attempt,
+                    kafkaOptions.TopicInitializationRetryDelaySeconds);
+
+                await Task.Delay(TimeSpan.FromSeconds(kafkaOptions.TopicInitializationRetryDelaySeconds), cancellationToken);
+            }
+        }
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    private static bool AllTopicsAlreadyExist(CreateTopicsException exception)
+    {
+        return exception.Results.All(result =>
+            result.Error.Code is ErrorCode.TopicAlreadyExists or ErrorCode.NoError);
     }
 }
 
@@ -198,6 +519,12 @@ public static class KafkaServiceCollectionExtensions
                 ? new KafkaProducer(serviceProvider.GetRequiredService<IOptions<KafkaOptions>>())
                 : new NoOpKafkaProducer(serviceProvider.GetRequiredService<ILogger<NoOpKafkaProducer>>());
         });
+        services.AddHostedService<KafkaTopicInitializer>();
         return services;
     }
+}
+
+internal static class KafkaStringExtensions
+{
+    public static byte[] ToUtf8Bytes(this string value) => System.Text.Encoding.UTF8.GetBytes(value);
 }

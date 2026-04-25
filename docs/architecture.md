@@ -19,8 +19,8 @@ QuickBite uses a modular monorepo with separate projects for each microservice l
 ## Shared building blocks
 
 - `QuickBite.BuildingBlocks.Common`: base entity and simple result primitives.
-- `QuickBite.BuildingBlocks.Contracts`: integration-event contracts and envelope.
-- `QuickBite.BuildingBlocks.Kafka`: producer abstraction, hosted consumer base, typed options.
+- `QuickBite.BuildingBlocks.Contracts`: integration-event contracts, version constants, and event envelope.
+- `QuickBite.BuildingBlocks.Kafka`: producer abstraction, hosted consumer base, typed options, topic initialization, retry, and dead-letter support.
 - `QuickBite.BuildingBlocks.Observability`: Serilog bootstrapping and correlation id middleware.
 
 ## Data ownership

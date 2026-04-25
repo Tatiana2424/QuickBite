@@ -13,6 +13,7 @@ QuickBite is an event-driven food delivery starter platform built as a .NET 8 mo
 - React + TypeScript frontend wired to the gateway.
 - SQL Server + Kafka + Kafka UI orchestration with Docker Compose.
 - Database-per-service migrations and environment-aware seed strategy.
+- Versioned Kafka topic configuration with retry and dead-letter topic support.
 
 ## Solution structure
 
@@ -136,18 +137,21 @@ Use this mode when validating the full containerized experience.
 
 ## Event flow
 
-1. The Orders service persists a new order and publishes `order.created`.
+1. The Orders service persists a new order and publishes `order.created` to `quickbite.orders.order-created.v1`.
 2. The Payments service consumes the event, simulates payment, stores a payment record, and publishes `payment.succeeded` or `payment.failed`.
 3. The Delivery service consumes `payment.succeeded`, creates a delivery, assigns a placeholder courier, and publishes `delivery.assigned`.
+4. Consumers retry transient failures and move permanently failed messages to `.dlq` topics.
 
 See `docs/architecture.md`, `docs/event-flow.md`, and `docs/local-development.md` for more detail.
 Database details are documented in `docs/database-architecture.md`.
+Kafka details are documented in `docs/kafka-architecture.md`.
 
 ## Current status
 
 This initial version focuses on architecture, wiring, and developer experience:
 
 - Shared contracts and Kafka abstractions are in place.
+- Kafka now uses versioned topics, enriched envelopes, idempotent producers, manual consumer commits, bounded retries, and dead-letter topics.
 - Each service has its own DbContext, initial migration, and owned database.
 - Identity, Catalog, and Delivery seed development data through startup configuration.
 - The frontend is intentionally lightweight but already points at the gateway.
@@ -157,6 +161,6 @@ This initial version focuses on architecture, wiring, and developer experience:
 ## Next steps
 
 - Add real authentication and authorization flows to downstream services.
-- Introduce outbox and inbox reliability patterns.
+- Introduce outbox and inbox reliability patterns for exactly-once business processing.
 - Add richer business workflows and domain validation.
 - Add integration tests and deeper service-specific data models.

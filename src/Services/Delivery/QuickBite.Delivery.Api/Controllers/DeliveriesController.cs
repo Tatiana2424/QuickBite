@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QuickBite.BuildingBlocks.Api;
 using QuickBite.Delivery.Application;
 
 namespace QuickBite.Delivery.Api.Controllers;
@@ -11,6 +12,6 @@ public sealed class DeliveriesController(IDeliveryReadService deliveryReadServic
     public async Task<ActionResult<DeliveryDto>> GetByOrderId(Guid orderId, CancellationToken cancellationToken)
     {
         var delivery = await deliveryReadService.GetByOrderIdAsync(orderId, cancellationToken);
-        return delivery is null ? NotFound() : Ok(delivery);
+        return delivery is null ? this.NotFoundProblem($"Delivery for order '{orderId}' was not found.") : Ok(delivery);
     }
 }

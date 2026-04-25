@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using QuickBite.BuildingBlocks.Api;
 using QuickBite.Payments.Application;
 
 namespace QuickBite.Payments.Api.Controllers;
@@ -11,6 +12,6 @@ public sealed class PaymentsController(IPaymentReadService paymentReadService) :
     public async Task<ActionResult<PaymentDto>> GetByOrderId(Guid orderId, CancellationToken cancellationToken)
     {
         var payment = await paymentReadService.GetByOrderIdAsync(orderId, cancellationToken);
-        return payment is null ? NotFound() : Ok(payment);
+        return payment is null ? this.NotFoundProblem($"Payment for order '{orderId}' was not found.") : Ok(payment);
     }
 }

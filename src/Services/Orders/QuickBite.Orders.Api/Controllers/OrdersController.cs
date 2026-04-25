@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
+using QuickBite.BuildingBlocks.Api;
 using QuickBite.Orders.Application;
 
 namespace QuickBite.Orders.Api.Controllers;
@@ -17,7 +18,7 @@ public sealed class OrdersController(IOrderService orderService) : ControllerBas
         var validationResult = await validator.ValidateAsync(request, cancellationToken);
         if (!validationResult.IsValid)
         {
-            return ValidationProblem(new ValidationProblemDetails(validationResult.ToDictionary()));
+            return this.ValidationProblem(validationResult.ToDictionary());
         }
 
         var order = await orderService.CreateAsync(request, cancellationToken);
@@ -28,7 +29,7 @@ public sealed class OrdersController(IOrderService orderService) : ControllerBas
     public async Task<ActionResult<OrderDto>> GetById(Guid id, CancellationToken cancellationToken)
     {
         var order = await orderService.GetByIdAsync(id, cancellationToken);
-        return order is null ? NotFound() : Ok(order);
+        return order is null ? this.NotFoundProblem($"Order '{id}' was not found.") : Ok(order);
     }
 }
 

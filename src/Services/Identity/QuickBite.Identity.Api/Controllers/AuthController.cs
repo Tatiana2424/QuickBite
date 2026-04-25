@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
+using QuickBite.BuildingBlocks.Api;
 using QuickBite.Identity.Application;
 
 namespace QuickBite.Identity.Api.Controllers;
@@ -17,7 +18,7 @@ public sealed class AuthController(IAuthService authService) : ControllerBase
         var validationResult = await validator.ValidateAsync(request, cancellationToken);
         if (!validationResult.IsValid)
         {
-            return ValidationProblem(new ValidationProblemDetails(validationResult.ToDictionary()));
+            return this.ValidationProblem(validationResult.ToDictionary());
         }
 
         try
@@ -26,7 +27,7 @@ public sealed class AuthController(IAuthService authService) : ControllerBase
         }
         catch (InvalidOperationException exception)
         {
-            return Conflict(new { message = exception.Message });
+            return this.ConflictProblem(exception.Message);
         }
     }
 
@@ -39,11 +40,11 @@ public sealed class AuthController(IAuthService authService) : ControllerBase
         var validationResult = await validator.ValidateAsync(request, cancellationToken);
         if (!validationResult.IsValid)
         {
-            return ValidationProblem(new ValidationProblemDetails(validationResult.ToDictionary()));
+            return this.ValidationProblem(validationResult.ToDictionary());
         }
 
         var response = await authService.LoginAsync(request, cancellationToken);
-        return response is null ? Unauthorized(new { message = "Invalid credentials." }) : Ok(response);
+        return response is null ? this.UnauthorizedProblem("Invalid credentials.") : Ok(response);
     }
 }
 

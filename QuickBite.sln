@@ -71,6 +71,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuickBite.BuildingBlocks.Tests", "tests\QuickBite.BuildingBlocks.Tests\QuickBite.BuildingBlocks.Tests.csproj", "{590C1DFD-60A5-4A45-AC25-5B72A8BF56AE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuickBite.BuildingBlocks.Api", "src\BuildingBlocks\QuickBite.BuildingBlocks.Api\QuickBite.BuildingBlocks.Api.csproj", "{44C86195-A7B0-40A4-AD1C-83EFA5F9C321}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -453,6 +455,18 @@ Global
 		{590C1DFD-60A5-4A45-AC25-5B72A8BF56AE}.Release|x64.Build.0 = Release|Any CPU
 		{590C1DFD-60A5-4A45-AC25-5B72A8BF56AE}.Release|x86.ActiveCfg = Release|Any CPU
 		{590C1DFD-60A5-4A45-AC25-5B72A8BF56AE}.Release|x86.Build.0 = Release|Any CPU
+		{44C86195-A7B0-40A4-AD1C-83EFA5F9C321}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{44C86195-A7B0-40A4-AD1C-83EFA5F9C321}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{44C86195-A7B0-40A4-AD1C-83EFA5F9C321}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{44C86195-A7B0-40A4-AD1C-83EFA5F9C321}.Debug|x64.Build.0 = Debug|Any CPU
+		{44C86195-A7B0-40A4-AD1C-83EFA5F9C321}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{44C86195-A7B0-40A4-AD1C-83EFA5F9C321}.Debug|x86.Build.0 = Debug|Any CPU
+		{44C86195-A7B0-40A4-AD1C-83EFA5F9C321}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{44C86195-A7B0-40A4-AD1C-83EFA5F9C321}.Release|Any CPU.Build.0 = Release|Any CPU
+		{44C86195-A7B0-40A4-AD1C-83EFA5F9C321}.Release|x64.ActiveCfg = Release|Any CPU
+		{44C86195-A7B0-40A4-AD1C-83EFA5F9C321}.Release|x64.Build.0 = Release|Any CPU
+		{44C86195-A7B0-40A4-AD1C-83EFA5F9C321}.Release|x86.ActiveCfg = Release|Any CPU
+		{44C86195-A7B0-40A4-AD1C-83EFA5F9C321}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -490,5 +504,6 @@ Global
 		{D95E3E7E-8615-432C-AED2-AFF05D330A72} = {90298CBA-BD6F-3A0A-69D5-97CAD7B05E7E}
 		{DAF40383-4631-4533-8E08-D03D8CEC9BD0} = {90298CBA-BD6F-3A0A-69D5-97CAD7B05E7E}
 		{590C1DFD-60A5-4A45-AC25-5B72A8BF56AE} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{44C86195-A7B0-40A4-AD1C-83EFA5F9C321} = {90298CBA-BD6F-3A0A-69D5-97CAD7B05E7E}
 	EndGlobalSection
 EndGlobal

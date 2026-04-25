@@ -18,6 +18,7 @@ QuickBite uses a modular monorepo with separate projects for each microservice l
 
 ## Shared building blocks
 
+- `QuickBite.BuildingBlocks.Api`: Problem Details responses, API version headers, exception handling, and gateway configuration validation.
 - `QuickBite.BuildingBlocks.Common`: base entity and simple result primitives.
 - `QuickBite.BuildingBlocks.Contracts`: integration-event contracts, version constants, and event envelope.
 - `QuickBite.BuildingBlocks.Kafka`: producer abstraction, hosted consumer base, typed options, topic initialization, retry, and dead-letter support.
@@ -38,3 +39,5 @@ Each service owns its own DbContext and schema boundary. Cross-service coordinat
 Database creation now follows EF Core migrations instead of `EnsureCreated()`. Development environments can apply migrations automatically and seed demo/reference data through the `DatabaseInitialization` configuration section.
 
 See `docs/database-architecture.md` for the implemented tables, seed policy, and migration workflow.
+
+See `docs/api-gateway-contracts.md` for HTTP error, correlation, versioning, and gateway routing conventions.

@@ -3,6 +3,7 @@
     <ProjectReference Include="..\QuickBite.Identity.Application\QuickBite.Identity.Application.csproj" />
     <ProjectReference Include="..\QuickBite.Identity.Infrastructure\QuickBite.Identity.Infrastructure.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\QuickBite.BuildingBlocks.Observability\QuickBite.BuildingBlocks.Observability.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\QuickBite.BuildingBlocks.Api\QuickBite.BuildingBlocks.Api.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="FluentValidation.AspNetCore" />

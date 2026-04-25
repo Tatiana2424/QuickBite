@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -34,6 +35,8 @@ public static class PaymentsInfrastructureServiceCollectionExtensions
     {
         var connectionString = ConfigurationGuard.GetRequiredConnectionString(configuration, "DefaultConnection");
 
+        services.AddOptions<DatabaseInitializationOptions>()
+            .Bind(configuration.GetSection("DatabaseInitialization"));
         services.AddDbContext<PaymentsDbContext>(options =>
             options.UseSqlServer(connectionString));
         services.AddKafkaInfrastructure(configuration);
@@ -44,9 +47,7 @@ public static class PaymentsInfrastructureServiceCollectionExtensions
 
     public static async Task EnsurePaymentsDatabaseAsync(this IServiceProvider serviceProvider)
     {
-        await using var scope = serviceProvider.CreateAsyncScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<PaymentsDbContext>();
-        await dbContext.Database.EnsureCreatedAsync();
+        await serviceProvider.InitializeDatabaseAsync<PaymentsDbContext>();
     }
 }
 
@@ -112,5 +113,15 @@ internal sealed class OrderCreatedConsumer : KafkaConsumerBackgroundService<Orde
                 new PaymentFailedEvent(payment.OrderId, payment.Id, payment.Amount, payment.FailureReason ?? "Payment failed."),
                 cancellationToken);
         }
+    }
+}
+
+public sealed class PaymentsDbContextFactory : IDesignTimeDbContextFactory<PaymentsDbContext>
+{
+    public PaymentsDbContext CreateDbContext(string[] args)
+    {
+        var optionsBuilder = new DbContextOptionsBuilder<PaymentsDbContext>();
+        optionsBuilder.UseSqlServer(DesignTimeSqlServer.ResolveConnectionString("QuickBitePaymentsDb"));
+        return new PaymentsDbContext(optionsBuilder.Options);
     }
 }

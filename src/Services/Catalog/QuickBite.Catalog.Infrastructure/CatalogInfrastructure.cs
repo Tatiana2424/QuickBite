@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using QuickBite.BuildingBlocks.Common;
@@ -41,6 +42,8 @@ public static class CatalogInfrastructureServiceCollectionExtensions
     {
         var connectionString = ConfigurationGuard.GetRequiredConnectionString(configuration, "DefaultConnection");
 
+        services.AddOptions<DatabaseInitializationOptions>()
+            .Bind(configuration.GetSection("DatabaseInitialization"));
         services.AddDbContext<CatalogDbContext>(options =>
             options.UseSqlServer(connectionString));
         services.AddScoped<ICatalogService, CatalogService>();
@@ -49,11 +52,15 @@ public static class CatalogInfrastructureServiceCollectionExtensions
 
     public static async Task EnsureCatalogDatabaseAsync(this IServiceProvider serviceProvider)
     {
-        await using var scope = serviceProvider.CreateAsyncScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
-        await dbContext.Database.EnsureCreatedAsync();
+        await serviceProvider.InitializeDatabaseAsync<CatalogDbContext>(SeedAsync);
+    }
 
-        if (await dbContext.Restaurants.AnyAsync())
+    private static async Task SeedAsync(
+        CatalogDbContext dbContext,
+        DatabaseInitializationOptions options,
+        CancellationToken cancellationToken)
+    {
+        if (!options.SeedDemoData || await dbContext.Restaurants.AnyAsync(cancellationToken))
         {
             return;
         }
@@ -70,7 +77,7 @@ public static class CatalogInfrastructureServiceCollectionExtensions
             new MenuItem(pizzaPort.Id, "Pepperoni Feast", "Pepperoni, mozzarella, oregano.", 13.50m),
             new MenuItem(pizzaPort.Id, "Garlic Knots", "Soft dough knots with garlic butter.", 4.80m));
 
-        await dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 }
 
@@ -110,5 +117,15 @@ internal sealed class CatalogService(CatalogDbContext dbContext) : ICatalogServi
             .OrderBy(x => x.Name)
             .Select(x => new MenuItemDto(x.Id, x.RestaurantId, x.Name, x.Description, x.Price))
             .ToListAsync(cancellationToken);
+    }
+}
+
+public sealed class CatalogDbContextFactory : IDesignTimeDbContextFactory<CatalogDbContext>
+{
+    public CatalogDbContext CreateDbContext(string[] args)
+    {
+        var optionsBuilder = new DbContextOptionsBuilder<CatalogDbContext>();
+        optionsBuilder.UseSqlServer(DesignTimeSqlServer.ResolveConnectionString("QuickBiteCatalogDb"));
+        return new CatalogDbContext(optionsBuilder.Options);
     }
 }

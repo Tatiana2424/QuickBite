@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -42,6 +43,8 @@ public static class DeliveryInfrastructureServiceCollectionExtensions
     {
         var connectionString = ConfigurationGuard.GetRequiredConnectionString(configuration, "DefaultConnection");
 
+        services.AddOptions<DatabaseInitializationOptions>()
+            .Bind(configuration.GetSection("DatabaseInitialization"));
         services.AddDbContext<DeliveryDbContext>(options =>
             options.UseSqlServer(connectionString));
         services.AddKafkaInfrastructure(configuration);
@@ -52,18 +55,24 @@ public static class DeliveryInfrastructureServiceCollectionExtensions
 
     public static async Task EnsureDeliveryDatabaseAsync(this IServiceProvider serviceProvider)
     {
-        await using var scope = serviceProvider.CreateAsyncScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<DeliveryDbContext>();
-        await dbContext.Database.EnsureCreatedAsync();
+        await serviceProvider.InitializeDatabaseAsync<DeliveryDbContext>(SeedAsync);
+    }
 
-        if (!await dbContext.Couriers.AnyAsync())
+    private static async Task SeedAsync(
+        DeliveryDbContext dbContext,
+        DatabaseInitializationOptions options,
+        CancellationToken cancellationToken)
+    {
+        if (!options.SeedDemoData || await dbContext.Couriers.AnyAsync(cancellationToken))
         {
-            dbContext.Couriers.AddRange(
-                new Courier("Alex Rider", "+1-555-0101"),
-                new Courier("Mia Brooks", "+1-555-0102"));
-
-            await dbContext.SaveChangesAsync();
+            return;
         }
+
+        dbContext.Couriers.AddRange(
+            new Courier("Alex Rider", "+1-555-0101"),
+            new Courier("Mia Brooks", "+1-555-0102"));
+
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 }
 
@@ -117,5 +126,15 @@ internal sealed class PaymentSucceededConsumer : KafkaConsumerBackgroundService<
             kafkaOptions.Value.Topics.DeliveryAssigned,
             new DeliveryAssignedEvent(delivery.OrderId, delivery.Id, courier.Id, courier.Name),
             cancellationToken);
+    }
+}
+
+public sealed class DeliveryDbContextFactory : IDesignTimeDbContextFactory<DeliveryDbContext>
+{
+    public DeliveryDbContext CreateDbContext(string[] args)
+    {
+        var optionsBuilder = new DbContextOptionsBuilder<DeliveryDbContext>();
+        optionsBuilder.UseSqlServer(DesignTimeSqlServer.ResolveConnectionString("QuickBiteDeliveryDb"));
+        return new DeliveryDbContext(optionsBuilder.Options);
     }
 }

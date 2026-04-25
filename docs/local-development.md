@@ -95,6 +95,9 @@ Use this mode when validating image builds, container networking, and startup fl
 ## Backend
 
 - All backend services now fail fast when required runtime configuration is missing.
+- APIs and the gateway include `X-Correlation-Id` and `X-QuickBite-Api-Version` response headers.
+- Known API errors use a consistent Problem Details payload with correlation and trace metadata.
+- Gateway routes validate their target clusters and downstream timeouts during startup.
 - Host-mode development now uses fixed localhost ports that match the gateway routes.
 - Databases are created through EF Core migrations instead of `EnsureCreated()`.
 - Runtime health endpoints are exposed on:

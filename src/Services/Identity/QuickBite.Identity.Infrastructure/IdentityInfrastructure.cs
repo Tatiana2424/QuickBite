@@ -105,8 +105,7 @@ public static class IdentityInfrastructureServiceCollectionExtensions
         var connectionString = ConfigurationGuard.GetRequiredConnectionString(configuration, "DefaultConnection");
 
         services.AddSingleton<IValidateOptions<JwtOptions>, JwtOptionsValidator>();
-        services.AddOptions<DatabaseInitializationOptions>()
-            .Bind(configuration.GetSection("DatabaseInitialization"));
+        services.AddDatabaseInitializationOptions(configuration);
         services.AddOptions<JwtOptions>()
             .Bind(configuration.GetSection("Jwt"))
             .ValidateOnStart();

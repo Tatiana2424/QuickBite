@@ -3,6 +3,7 @@
     <ProjectReference Include="..\QuickBite.Catalog.Application\QuickBite.Catalog.Application.csproj" />
     <ProjectReference Include="..\QuickBite.Catalog.Infrastructure\QuickBite.Catalog.Infrastructure.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\QuickBite.BuildingBlocks.Observability\QuickBite.BuildingBlocks.Observability.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\QuickBite.BuildingBlocks.Api\QuickBite.BuildingBlocks.Api.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Serilog.AspNetCore" />

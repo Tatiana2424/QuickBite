@@ -42,8 +42,7 @@ public static class CatalogInfrastructureServiceCollectionExtensions
     {
         var connectionString = ConfigurationGuard.GetRequiredConnectionString(configuration, "DefaultConnection");
 
-        services.AddOptions<DatabaseInitializationOptions>()
-            .Bind(configuration.GetSection("DatabaseInitialization"));
+        services.AddDatabaseInitializationOptions(configuration);
         services.AddDbContext<CatalogDbContext>(options =>
             options.UseSqlServer(connectionString));
         services.AddScoped<ICatalogService, CatalogService>();

@@ -42,8 +42,7 @@ public static class OrdersInfrastructureServiceCollectionExtensions
     {
         var connectionString = ConfigurationGuard.GetRequiredConnectionString(configuration, "DefaultConnection");
 
-        services.AddOptions<DatabaseInitializationOptions>()
-            .Bind(configuration.GetSection("DatabaseInitialization"));
+        services.AddDatabaseInitializationOptions(configuration);
         services.AddDbContext<OrdersDbContext>(options =>
             options.UseSqlServer(connectionString));
         services.AddKafkaInfrastructure(configuration);

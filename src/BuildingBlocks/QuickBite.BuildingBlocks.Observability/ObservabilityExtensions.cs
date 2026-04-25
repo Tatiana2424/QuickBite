@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Serilog;
+using Serilog.Context;
 
 namespace QuickBite.BuildingBlocks.Observability;
 
@@ -32,7 +33,13 @@ public sealed class CorrelationIdMiddleware
     public async Task InvokeAsync(HttpContext context)
     {
         var correlationId = context.Request.Headers[HeaderName].FirstOrDefault() ?? Guid.NewGuid().ToString("N");
+        context.Request.Headers[HeaderName] = correlationId;
         context.Response.Headers[HeaderName] = correlationId;
-        await _next(context);
+        context.TraceIdentifier = correlationId;
+
+        using (LogContext.PushProperty("CorrelationId", correlationId))
+        {
+            await _next(context);
+        }
     }
 }

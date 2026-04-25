@@ -43,8 +43,7 @@ public static class DeliveryInfrastructureServiceCollectionExtensions
     {
         var connectionString = ConfigurationGuard.GetRequiredConnectionString(configuration, "DefaultConnection");
 
-        services.AddOptions<DatabaseInitializationOptions>()
-            .Bind(configuration.GetSection("DatabaseInitialization"));
+        services.AddDatabaseInitializationOptions(configuration);
         services.AddDbContext<DeliveryDbContext>(options =>
             options.UseSqlServer(connectionString));
         services.AddKafkaInfrastructure(configuration);

@@ -1,3 +1,4 @@
+using QuickBite.BuildingBlocks.Api;
 using QuickBite.BuildingBlocks.Observability;
 using QuickBite.Payments.Infrastructure;
 
@@ -5,7 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.ConfigureQuickBiteObservability("QuickBite.Payments.Api");
 builder.Services.AddPaymentsInfrastructure(builder.Configuration);
-builder.Services.AddControllers();
+builder.Services.AddQuickBiteApiDefaults();
 builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -14,7 +15,9 @@ var app = builder.Build();
 
 await app.Services.EnsurePaymentsDatabaseAsync();
 
+app.UseQuickBiteExceptionHandling(app.Environment);
 app.UseQuickBiteObservability();
+app.UseQuickBiteApiVersionHeader();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

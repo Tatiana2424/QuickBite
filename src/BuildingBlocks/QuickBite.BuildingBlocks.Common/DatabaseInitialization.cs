@@ -14,8 +14,41 @@ public sealed class DatabaseInitializationOptions
     public int MigrationRetryDelaySeconds { get; set; } = 3;
 }
 
+public sealed class DatabaseInitializationOptionsValidator : IValidateOptions<DatabaseInitializationOptions>
+{
+    public ValidateOptionsResult Validate(string? name, DatabaseInitializationOptions options)
+    {
+        var failures = new List<string>();
+        if (options.MigrationRetryCount <= 0)
+        {
+            failures.Add("DatabaseInitialization:MigrationRetryCount must be greater than zero.");
+        }
+
+        if (options.MigrationRetryDelaySeconds < 0)
+        {
+            failures.Add("DatabaseInitialization:MigrationRetryDelaySeconds cannot be negative.");
+        }
+
+        return failures.Count > 0
+            ? ValidateOptionsResult.Fail(failures)
+            : ValidateOptionsResult.Success;
+    }
+}
+
 public static class DatabaseInitializationExtensions
 {
+    public static IServiceCollection AddDatabaseInitializationOptions(
+        this IServiceCollection services,
+        Microsoft.Extensions.Configuration.IConfiguration configuration)
+    {
+        services.AddSingleton<IValidateOptions<DatabaseInitializationOptions>, DatabaseInitializationOptionsValidator>();
+        services.AddOptions<DatabaseInitializationOptions>()
+            .Bind(configuration.GetSection("DatabaseInitialization"))
+            .ValidateOnStart();
+
+        return services;
+    }
+
     public static async Task InitializeDatabaseAsync<TContext>(
         this IServiceProvider serviceProvider,
         Func<TContext, DatabaseInitializationOptions, CancellationToken, Task>? seedAsync = null,

@@ -35,8 +35,7 @@ public static class PaymentsInfrastructureServiceCollectionExtensions
     {
         var connectionString = ConfigurationGuard.GetRequiredConnectionString(configuration, "DefaultConnection");
 
-        services.AddOptions<DatabaseInitializationOptions>()
-            .Bind(configuration.GetSection("DatabaseInitialization"));
+        services.AddDatabaseInitializationOptions(configuration);
         services.AddDbContext<PaymentsDbContext>(options =>
             options.UseSqlServer(connectionString));
         services.AddKafkaInfrastructure(configuration);

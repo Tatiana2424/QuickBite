@@ -74,6 +74,7 @@ Use this mode when Docker is unavailable. It is a Windows-only fallback that use
 
    - LocalDB databases are migrated automatically on startup.
    - Legacy local databases created before the migration-based setup are recreated automatically in development.
+   - Kafka is disabled in this mode by design. Use a Docker-backed mode when testing asynchronous order/payment/delivery workflows.
 
 ### Mode B: full-stack container parity
 
@@ -100,6 +101,13 @@ Use this mode when validating image builds, container networking, and startup fl
   - `/health`
   - `/health/live`
   - `/health/ready`
+
+## Kafka workflow
+
+- Docker-backed modes expose Kafka externally on `localhost:9092` and internally as `kafka:29092`.
+- Full-stack containers set service-specific Kafka client ids and producer names for traceable event envelopes.
+- Application startup initializes the configured topics and `.dlq` dead-letter topics when Kafka is enabled.
+- Kafka UI is available at `http://localhost:8085`.
 
 ## Database workflow
 

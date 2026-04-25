@@ -73,4 +73,74 @@ public sealed class KafkaOptionsValidatorTests
         Assert.False(result.Succeeded);
         Assert.Contains(nameof(KafkaTopics.DeliveryAssigned), result.FailureMessage);
     }
+
+    [Fact]
+    public void Validate_fails_when_topics_are_duplicated()
+    {
+        var result = _validator.Validate(Options.DefaultName, new KafkaOptions
+        {
+            Enabled = true,
+            BootstrapServers = "localhost:9092",
+            Topics = new KafkaTopics
+            {
+                OrderCreated = "quickbite.orders.order-created.v1",
+                PaymentSucceeded = "quickbite.orders.order-created.v1",
+                PaymentFailed = "quickbite.payments.payment-failed.v1",
+                DeliveryAssigned = "quickbite.delivery.delivery-assigned.v1",
+                DeliveryCompleted = "quickbite.delivery.delivery-completed.v1"
+            }
+        });
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("unique", result.FailureMessage);
+    }
+
+    [Fact]
+    public void Validate_fails_when_retry_count_is_negative()
+    {
+        var result = _validator.Validate(Options.DefaultName, new KafkaOptions
+        {
+            Enabled = true,
+            BootstrapServers = "localhost:9092",
+            Consumer = new KafkaConsumerOptions
+            {
+                MaxRetryAttempts = -1
+            }
+        });
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("MaxRetryAttempts", result.FailureMessage);
+    }
+
+    [Fact]
+    public void Validate_fails_when_topic_initialization_retry_count_is_negative()
+    {
+        var result = _validator.Validate(Options.DefaultName, new KafkaOptions
+        {
+            Enabled = true,
+            BootstrapServers = "localhost:9092",
+            TopicInitializationRetryCount = -1
+        });
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("TopicInitializationRetryCount", result.FailureMessage);
+    }
+
+    [Fact]
+    public void Validate_fails_when_dead_letter_suffix_is_missing()
+    {
+        var result = _validator.Validate(Options.DefaultName, new KafkaOptions
+        {
+            Enabled = true,
+            BootstrapServers = "localhost:9092",
+            DeadLetter = new KafkaDeadLetterOptions
+            {
+                Enabled = true,
+                TopicSuffix = ""
+            }
+        });
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("DeadLetter:TopicSuffix", result.FailureMessage);
+    }
 }

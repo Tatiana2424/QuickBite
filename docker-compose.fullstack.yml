@@ -13,6 +13,7 @@ services:
       Jwt__Issuer: ${JWT_ISSUER:-QuickBite}
       Jwt__Audience: ${JWT_AUDIENCE:-QuickBite.Web}
       Jwt__Key: ${JWT_KEY:-quickbite-super-secret-development-key-change-me}
+      Jwt__AllowDevelopmentSigningKey: "true"
       Kafka__Enabled: "true"
       Kafka__BootstrapServers: kafka:29092
       Kafka__ClientId: quickbite-identity-api

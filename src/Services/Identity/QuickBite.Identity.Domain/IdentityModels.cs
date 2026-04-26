@@ -80,7 +80,11 @@ public sealed class RefreshToken : Entity
     public string TokenHash { get; private set; } = string.Empty;
     public DateTimeOffset ExpiresAtUtc { get; private set; }
     public DateTimeOffset? RevokedAtUtc { get; private set; }
+    public string? ReplacedByTokenHash { get; private set; }
     public User? User { get; private set; }
+    public bool IsExpired => DateTimeOffset.UtcNow >= ExpiresAtUtc;
+    public bool IsRevoked => RevokedAtUtc is not null;
+    public bool IsActive => !IsRevoked && !IsExpired;
 
     private RefreshToken()
     {
@@ -93,9 +97,10 @@ public sealed class RefreshToken : Entity
         ExpiresAtUtc = expiresAtUtc;
     }
 
-    public void Revoke()
+    public void Revoke(string? replacedByTokenHash = null)
     {
         RevokedAtUtc = DateTimeOffset.UtcNow;
+        ReplacedByTokenHash = replacedByTokenHash;
         Touch();
     }
 }

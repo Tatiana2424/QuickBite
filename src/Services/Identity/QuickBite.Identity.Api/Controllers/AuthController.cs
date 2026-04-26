@@ -46,6 +46,38 @@ public sealed class AuthController(IAuthService authService) : ControllerBase
         var response = await authService.LoginAsync(request, cancellationToken);
         return response is null ? this.UnauthorizedProblem("Invalid credentials.") : Ok(response);
     }
+
+    [HttpPost("refresh")]
+    public async Task<ActionResult<AuthResponse>> Refresh(
+        [FromBody] RefreshTokenRequest request,
+        [FromServices] IValidator<RefreshTokenRequest> validator,
+        CancellationToken cancellationToken)
+    {
+        var validationResult = await validator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            return this.ValidationProblem(validationResult.ToDictionary());
+        }
+
+        var response = await authService.RefreshAsync(request, cancellationToken);
+        return response is null ? this.UnauthorizedProblem("Refresh token is invalid, expired, or revoked.") : Ok(response);
+    }
+
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout(
+        [FromBody] RevokeRefreshTokenRequest request,
+        [FromServices] IValidator<RevokeRefreshTokenRequest> validator,
+        CancellationToken cancellationToken)
+    {
+        var validationResult = await validator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            return this.ValidationProblem(validationResult.ToDictionary());
+        }
+
+        await authService.RevokeRefreshTokenAsync(request, cancellationToken);
+        return NoContent();
+    }
 }
 
 public sealed class RegisterRequestValidator : AbstractValidator<RegisterRequest>
@@ -64,5 +96,21 @@ public sealed class LoginRequestValidator : AbstractValidator<LoginRequest>
     {
         RuleFor(x => x.Email).NotEmpty().EmailAddress();
         RuleFor(x => x.Password).NotEmpty();
+    }
+}
+
+public sealed class RefreshTokenRequestValidator : AbstractValidator<RefreshTokenRequest>
+{
+    public RefreshTokenRequestValidator()
+    {
+        RuleFor(x => x.RefreshToken).NotEmpty();
+    }
+}
+
+public sealed class RevokeRefreshTokenRequestValidator : AbstractValidator<RevokeRefreshTokenRequest>
+{
+    public RevokeRefreshTokenRequestValidator()
+    {
+        RuleFor(x => x.RefreshToken).NotEmpty();
     }
 }

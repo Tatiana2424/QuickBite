@@ -4,7 +4,7 @@ QuickBite is an event-driven food delivery starter platform built as a .NET 8 mo
 
 ## What is included
 
-- Identity service with registration, login, and JWT token generation skeleton.
+- Identity service with registration, login, JWT access tokens, refresh-token rotation, and role seeds.
 - Catalog service with seeded restaurants and menu items.
 - Orders service with order creation and `OrderCreated` Kafka publishing.
 - Payments service with `OrderCreated` consumption and simulated payment handling.
@@ -15,6 +15,7 @@ QuickBite is an event-driven food delivery starter platform built as a .NET 8 mo
 - Database-per-service migrations and environment-aware seed strategy.
 - Versioned Kafka topic configuration with retry and dead-letter topic support.
 - Shared API conventions for Problem Details, correlation IDs, API version headers, and gateway validation.
+- Identity refresh-token rotation, role policies, safer JWT secret defaults, and gateway security headers/rate limiting.
 
 ## Solution structure
 
@@ -147,6 +148,7 @@ See `docs/architecture.md`, `docs/event-flow.md`, and `docs/local-development.md
 API and gateway contracts are documented in `docs/api-gateway-contracts.md`.
 Database details are documented in `docs/database-architecture.md`.
 Kafka details are documented in `docs/kafka-architecture.md`.
+Security details are documented in `docs/security-baseline.md`.
 
 ## Current status
 
@@ -155,6 +157,8 @@ This initial version focuses on architecture, wiring, and developer experience:
 - Shared contracts and Kafka abstractions are in place.
 - API services now share consistent error responses, correlation propagation, and version headers.
 - The gateway validates route/cluster configuration and defines downstream timeouts.
+- Identity now issues access/refresh token pairs and supports refresh-token rotation and logout revocation.
+- Base configuration no longer ships with an active JWT signing key; local development explicitly opts into the demo key.
 - Kafka now uses versioned topics, enriched envelopes, idempotent producers, manual consumer commits, bounded retries, and dead-letter topics.
 - Each service has its own DbContext, initial migration, and owned database.
 - Identity, Catalog, and Delivery seed development data through startup configuration.

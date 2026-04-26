@@ -68,6 +68,14 @@ Current downstream timeout defaults:
 
 Retries are intentionally not enabled globally. They are safe for idempotent reads but risky for commands such as order creation and registration. Add route-specific retry policy later only for read-only routes with clear idempotency guarantees.
 
+## Gateway security policy
+
+The gateway applies an explicit CORS allow-list, fixed-window rate limiting, and baseline browser security headers. Configure these under `GatewaySecurity`:
+
+- `AllowedOrigins`
+- `RateLimiting:PermitLimit`
+- `RateLimiting:WindowMinutes`
+
 ## Internal endpoint exposure
 
 For local development, individual service ports remain available. For application usage, the gateway is the stable entry point. Service-specific ports should be treated as internal/debug endpoints, not frontend integration targets.

@@ -18,5 +18,5 @@ export async function getOrder(orderId: string): Promise<Order> {
 
 export async function login(email: string, password: string) {
   const response = await apiClient.post("/identity/api/auth/login", { email, password });
-  return response.data as { token: string; fullName: string };
+  return response.data as { accessToken: string; refreshToken: string; fullName: string };
 }

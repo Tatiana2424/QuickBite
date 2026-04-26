@@ -89,7 +89,10 @@ Use this mode when validating image builds, container networking, and startup fl
 
    - gateway health: `http://localhost:8080/health`
    - gateway readiness: `http://localhost:8080/health/ready`
+   - gateway metrics: `http://localhost:8080/metrics`
    - Kafka UI: `http://localhost:8085`
+   - Prometheus: `http://localhost:9090`
+   - Grafana: `http://localhost:3001`
    - frontend: `http://localhost:3000`
 
 ## Backend
@@ -105,6 +108,7 @@ Use this mode when validating image builds, container networking, and startup fl
   - `/health`
   - `/health/live`
   - `/health/ready`
+- Runtime metrics are exposed on `/metrics` for Prometheus scraping.
 
 ## Kafka workflow
 

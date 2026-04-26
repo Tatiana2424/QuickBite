@@ -41,3 +41,4 @@ Database creation now follows EF Core migrations instead of `EnsureCreated()`. D
 See `docs/database-architecture.md` for the implemented tables, seed policy, and migration workflow.
 
 See `docs/api-gateway-contracts.md` for HTTP error, correlation, versioning, and gateway routing conventions.
+See `docs/security-baseline.md` for authentication, authorization, secret handling, gateway security, and service-to-service trust conventions.

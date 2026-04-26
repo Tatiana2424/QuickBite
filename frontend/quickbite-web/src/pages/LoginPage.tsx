@@ -12,7 +12,7 @@ export function LoginPage() {
 
     try {
       const response = await login(email, password);
-      setResult(`Authenticated as ${response.fullName}. JWT token received.`);
+      setResult(`Authenticated as ${response.fullName}. Access and refresh tokens received.`);
     } catch {
       setResult("Login failed. Register a user through the Identity API first.");
     }

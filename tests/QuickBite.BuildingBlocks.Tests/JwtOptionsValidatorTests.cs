@@ -14,7 +14,7 @@ public sealed class JwtOptionsValidatorTests
         {
             Issuer = "QuickBite",
             Audience = "QuickBite.Web",
-            Key = "quickbite-super-secret-development-key-change-me"
+            Key = "a-realistic-local-test-signing-key-value"
         });
 
         Assert.True(result.Succeeded);
@@ -41,11 +41,39 @@ public sealed class JwtOptionsValidatorTests
         {
             Issuer = "",
             Audience = "",
-            Key = "quickbite-super-secret-development-key-change-me"
+            Key = "a-realistic-local-test-signing-key-value"
         });
 
         Assert.False(result.Succeeded);
         Assert.Contains(nameof(JwtOptions.Issuer), result.FailureMessage);
         Assert.Contains(nameof(JwtOptions.Audience), result.FailureMessage);
+    }
+
+    [Fact]
+    public void Validate_fails_when_development_key_is_used_without_opt_in()
+    {
+        var result = _validator.Validate(Options.DefaultName, new JwtOptions
+        {
+            Issuer = "QuickBite",
+            Audience = "QuickBite.Web",
+            Key = JwtOptions.DevelopmentSigningKey
+        });
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("development signing key", result.FailureMessage);
+    }
+
+    [Fact]
+    public void Validate_allows_development_key_when_explicitly_enabled()
+    {
+        var result = _validator.Validate(Options.DefaultName, new JwtOptions
+        {
+            Issuer = "QuickBite",
+            Audience = "QuickBite.Web",
+            Key = JwtOptions.DevelopmentSigningKey,
+            AllowDevelopmentSigningKey = true
+        });
+
+        Assert.True(result.Succeeded);
     }
 }

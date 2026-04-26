@@ -56,6 +56,7 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
             entity.ToTable("RefreshTokens");
             entity.HasKey(x => x.Id);
             entity.Property(x => x.TokenHash).HasMaxLength(512);
+            entity.Property(x => x.ReplacedByTokenHash).HasMaxLength(512);
             entity.HasIndex(x => x.TokenHash).IsUnique();
         });
     }
@@ -63,9 +64,13 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
 
 public sealed class JwtOptions
 {
+    public const string DevelopmentSigningKey = "quickbite-super-secret-development-key-change-me";
     public string Issuer { get; set; } = "QuickBite";
     public string Audience { get; set; } = "QuickBite.Web";
-    public string Key { get; set; } = "quickbite-super-secret-development-key-change-me";
+    public string Key { get; set; } = string.Empty;
+    public int AccessTokenMinutes { get; set; } = 30;
+    public int RefreshTokenDays { get; set; } = 14;
+    public bool AllowDevelopmentSigningKey { get; set; }
 }
 
 public sealed class JwtOptionsValidator : IValidateOptions<JwtOptions>
@@ -87,9 +92,23 @@ public sealed class JwtOptionsValidator : IValidateOptions<JwtOptions>
         {
             missing.Add(nameof(options.Key));
         }
+        else if (options.Key == JwtOptions.DevelopmentSigningKey && !options.AllowDevelopmentSigningKey)
+        {
+            return ValidateOptionsResult.Fail("Jwt:Key uses the local development signing key. Configure a real secret or set Jwt:AllowDevelopmentSigningKey=true only for local development.");
+        }
         else if (options.Key.Length < 32)
         {
             return ValidateOptionsResult.Fail("Jwt:Key must be at least 32 characters long.");
+        }
+
+        if (options.AccessTokenMinutes <= 0)
+        {
+            return ValidateOptionsResult.Fail("Jwt:AccessTokenMinutes must be greater than zero.");
+        }
+
+        if (options.RefreshTokenDays <= 0)
+        {
+            return ValidateOptionsResult.Fail("Jwt:RefreshTokenDays must be greater than zero.");
         }
 
         return missing.Count > 0
@@ -174,9 +193,11 @@ internal sealed class AuthService(IdentityDbContext dbContext, IOptions<JwtOptio
         user.AssignRole(customerRole);
 
         dbContext.Users.Add(user);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        var refreshToken = CreateRefreshToken(user.Id);
+        dbContext.RefreshTokens.Add(refreshToken.Entity);
 
-        return new AuthResponse(user.Id, user.Email, user.FullName, CreateToken(user));
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return CreateAuthResponse(user, refreshToken);
     }
 
     public async Task<AuthResponse?> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
@@ -197,14 +218,80 @@ internal sealed class AuthService(IdentityDbContext dbContext, IOptions<JwtOptio
                 .LoadAsync(cancellationToken);
         }
 
-        return user is null ? null : new AuthResponse(user.Id, user.Email, user.FullName, CreateToken(user));
+        if (user is null)
+        {
+            return null;
+        }
+
+        var refreshToken = CreateRefreshToken(user.Id);
+        dbContext.RefreshTokens.Add(refreshToken.Entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return CreateAuthResponse(user, refreshToken);
+    }
+
+    public async Task<AuthResponse?> RefreshAsync(RefreshTokenRequest request, CancellationToken cancellationToken)
+    {
+        var tokenHash = HashToken(request.RefreshToken);
+        var existingToken = await dbContext.RefreshTokens
+            .Include(x => x.User)
+            .ThenInclude(x => x!.UserRoles)
+            .ThenInclude(x => x.Role)
+            .FirstOrDefaultAsync(x => x.TokenHash == tokenHash, cancellationToken);
+
+        if (existingToken?.User is null || !existingToken.IsActive)
+        {
+            return null;
+        }
+
+        var replacementToken = CreateRefreshToken(existingToken.UserId);
+        existingToken.Revoke(replacementToken.Entity.TokenHash);
+        dbContext.RefreshTokens.Add(replacementToken.Entity);
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return CreateAuthResponse(existingToken.User, replacementToken);
+    }
+
+    public async Task<bool> RevokeRefreshTokenAsync(RevokeRefreshTokenRequest request, CancellationToken cancellationToken)
+    {
+        var tokenHash = HashToken(request.RefreshToken);
+        var existingToken = await dbContext.RefreshTokens.FirstOrDefaultAsync(x => x.TokenHash == tokenHash, cancellationToken);
+        if (existingToken is null || existingToken.IsRevoked)
+        {
+            return false;
+        }
+
+        existingToken.Revoke();
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return true;
     }
 
     private static string HashPassword(string password) => PasswordHasher.Hash(password);
 
-    private string CreateToken(User user)
+    private AuthResponse CreateAuthResponse(User user, RefreshTokenIssue refreshToken)
+    {
+        var accessToken = CreateAccessToken(user);
+        var roles = user.UserRoles
+            .Where(x => x.Role is not null)
+            .Select(x => x.Role!.Name)
+            .OrderBy(role => role)
+            .ToArray();
+
+        return new AuthResponse(
+            user.Id,
+            user.Email,
+            user.FullName,
+            roles,
+            accessToken.Token,
+            accessToken.ExpiresAtUtc,
+            refreshToken.Token,
+            refreshToken.Entity.ExpiresAtUtc);
+    }
+
+    private AccessTokenIssue CreateAccessToken(User user)
     {
         var options = jwtOptions.Value;
+        var expiresAtUtc = DateTimeOffset.UtcNow.AddMinutes(options.AccessTokenMinutes);
         var credentials = new SigningCredentials(
             new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.Key)),
             SecurityAlgorithms.HmacSha256);
@@ -225,12 +312,37 @@ internal sealed class AuthService(IdentityDbContext dbContext, IOptions<JwtOptio
             issuer: options.Issuer,
             audience: options.Audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddHours(6),
+            expires: expiresAtUtc.UtcDateTime,
             signingCredentials: credentials);
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        return new AccessTokenIssue(new JwtSecurityTokenHandler().WriteToken(token), expiresAtUtc);
+    }
+
+    private RefreshTokenIssue CreateRefreshToken(Guid userId)
+    {
+        var token = GenerateSecureToken();
+        var entity = new RefreshToken(
+            userId,
+            HashToken(token),
+            DateTimeOffset.UtcNow.AddDays(jwtOptions.Value.RefreshTokenDays));
+
+        return new RefreshTokenIssue(token, entity);
+    }
+
+    private static string GenerateSecureToken()
+    {
+        return Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+    }
+
+    internal static string HashToken(string token)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));
+        return Convert.ToHexString(bytes);
     }
 }
+
+internal sealed record AccessTokenIssue(string Token, DateTimeOffset ExpiresAtUtc);
+internal sealed record RefreshTokenIssue(string Token, RefreshToken Entity);
 
 internal static class PasswordHasher
 {

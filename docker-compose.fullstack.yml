@@ -105,6 +105,11 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
+      ReverseProxy__Clusters__identity-cluster__Destinations__primary__Address: http://quickbite.identity.api:8080/
+      ReverseProxy__Clusters__catalog-cluster__Destinations__primary__Address: http://quickbite.catalog.api:8080/
+      ReverseProxy__Clusters__orders-cluster__Destinations__primary__Address: http://quickbite.orders.api:8080/
+      ReverseProxy__Clusters__payments-cluster__Destinations__primary__Address: http://quickbite.payments.api:8080/
+      ReverseProxy__Clusters__delivery-cluster__Destinations__primary__Address: http://quickbite.delivery.api:8080/
     ports:
       - "${GATEWAY_PORT:-8080}:8080"
 

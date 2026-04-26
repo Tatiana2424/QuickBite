@@ -6,14 +6,14 @@ QuickBite is an event-driven food delivery starter platform built as a .NET 8 mo
 
 - Identity service with registration, login, JWT access tokens, refresh-token rotation, and role seeds.
 - Catalog service with seeded restaurants and menu items.
-- Orders service with order creation and `OrderCreated` Kafka publishing.
-- Payments service with `OrderCreated` consumption and simulated payment handling.
-- Delivery service with payment-success consumption and delivery assignment.
+- Orders service with idempotent order creation, transactional `OrderCreated` outbox publishing, and payment-result status updates.
+- Payments service with `OrderCreated` inbox deduplication, simulated payment handling, and payment-result outbox publishing.
+- Delivery service with payment-success inbox deduplication, delivery assignment, and `DeliveryAssigned` outbox publishing.
 - YARP gateway with service routing.
 - React + TypeScript frontend wired to the gateway.
 - SQL Server + Kafka + Kafka UI orchestration with Docker Compose.
 - Database-per-service migrations and environment-aware seed strategy.
-- Versioned Kafka topic configuration with retry and dead-letter topic support.
+- Versioned Kafka topic configuration with retry, dead-letter topic support, outbox publishing, and inbox deduplication.
 - Shared API conventions for Problem Details, correlation IDs, API version headers, and gateway validation.
 - Identity refresh-token rotation, role policies, safer JWT secret defaults, and gateway security headers/rate limiting.
 
@@ -139,10 +139,12 @@ Use this mode when validating the full containerized experience.
 
 ## Event flow
 
-1. The Orders service persists a new order and publishes `order.created` to `quickbite.orders.order-created.v1`.
-2. The Payments service consumes the event, simulates payment, stores a payment record, and publishes `payment.succeeded` or `payment.failed`.
-3. The Delivery service consumes `payment.succeeded`, creates a delivery, assigns a placeholder courier, and publishes `delivery.assigned`.
-4. Consumers retry transient failures and move permanently failed messages to `.dlq` topics.
+1. The Orders service persists a new order and stores `order.created` in its outbox.
+2. The Orders outbox publisher emits `order.created` to `quickbite.orders.order-created.v1`.
+3. The Payments service consumes the event through inbox deduplication, simulates payment, stores a payment record, and stores `payment.succeeded` or `payment.failed` in its outbox.
+4. The Orders service consumes payment-result events and updates order status.
+5. The Delivery service consumes `payment.succeeded` through inbox deduplication, creates a delivery, assigns a placeholder courier, and stores `delivery.assigned` in its outbox.
+6. Consumers retry transient failures and move permanently failed messages to `.dlq` topics.
 
 See `docs/architecture.md`, `docs/event-flow.md`, and `docs/local-development.md` for more detail.
 API and gateway contracts are documented in `docs/api-gateway-contracts.md`.
@@ -159,7 +161,7 @@ This initial version focuses on architecture, wiring, and developer experience:
 - The gateway validates route/cluster configuration and defines downstream timeouts.
 - Identity now issues access/refresh token pairs and supports refresh-token rotation and logout revocation.
 - Base configuration no longer ships with an active JWT signing key; local development explicitly opts into the demo key.
-- Kafka now uses versioned topics, enriched envelopes, idempotent producers, manual consumer commits, bounded retries, and dead-letter topics.
+- Kafka now uses versioned topics, enriched envelopes, idempotent producers, transactional outbox publishing, inbox deduplication, manual consumer commits, bounded retries, and dead-letter topics.
 - Each service has its own DbContext, initial migration, and owned database.
 - Identity, Catalog, and Delivery seed development data through startup configuration.
 - The frontend is intentionally lightweight but already points at the gateway.
@@ -169,6 +171,6 @@ This initial version focuses on architecture, wiring, and developer experience:
 ## Next steps
 
 - Add real authentication and authorization flows to downstream services.
-- Introduce outbox and inbox reliability patterns for exactly-once business processing.
+- Add scheduled reconciliation jobs and operational replay tooling for failed workflows.
 - Add richer business workflows and domain validation.
 - Add integration tests and deeper service-specific data models.

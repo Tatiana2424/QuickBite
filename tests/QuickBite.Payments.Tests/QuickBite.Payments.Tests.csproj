@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Services\Payments\QuickBite.Payments.Application\QuickBite.Payments.Application.csproj" />
+    <ProjectReference Include="..\..\src\Services\Payments\QuickBite.Payments.Domain\QuickBite.Payments.Domain.csproj" />
   </ItemGroup>
 
 </Project>

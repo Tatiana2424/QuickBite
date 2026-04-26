@@ -58,21 +58,34 @@ Implemented tables:
 
 - `Orders`
 - `OrderItems`
+- `OrderStatusHistory`
+- `OutboxMessages`
+- `InboxMessages`
 
 Notes:
 
 - `OrderItems.OrderId` points to `Orders`.
+- `Orders.UserId + Orders.IdempotencyKey` is unique when an idempotency key is supplied.
 - Order state remains inside the service database and is projected outward through API responses and events.
+- `OrderStatusHistory` records saga state changes such as payment processing, confirmed, or failed.
+- `OutboxMessages` stores outgoing `order.created` events transactionally with the order.
+- `InboxMessages` stores processed payment-result events so duplicate deliveries do not corrupt order state.
 
 ### Payments
 
 Implemented tables:
 
 - `Payments`
+- `PaymentStatusHistory`
+- `OutboxMessages`
+- `InboxMessages`
 
 Notes:
 
 - `Payments.OrderId` is unique to guarantee one payment aggregate per order in the current starter workflow.
+- `PaymentStatusHistory` records simulated provider outcomes.
+- `InboxMessages` stores processed `order.created` events.
+- `OutboxMessages` stores outgoing `payment.succeeded` and `payment.failed` events transactionally with payment records.
 
 ### Delivery
 
@@ -80,11 +93,17 @@ Implemented tables:
 
 - `Couriers`
 - `Deliveries`
+- `DeliveryStatusHistory`
+- `OutboxMessages`
+- `InboxMessages`
 
 Notes:
 
 - `Deliveries.OrderId` is unique.
 - Demo couriers are seeded only in demo-data environments.
+- `DeliveryStatusHistory` records assignment state transitions.
+- `InboxMessages` stores processed `payment.succeeded` events.
+- `OutboxMessages` stores outgoing `delivery.assigned` events transactionally with delivery records.
 
 ## Planned next-step tables
 
@@ -92,9 +111,9 @@ These are intentionally not implemented yet, but the structure now leaves room f
 
 - Identity: `UserAddresses`, richer session management, audit records
 - Catalog: menu categories, availability windows, restaurant status snapshots
-- Orders: order status history, delivery address snapshot, outbox/inbox tables
-- Payments: payment attempts, provider responses, status history, outbox/inbox tables
-- Delivery: assignment history, courier availability, status history, outbox/inbox tables
+- Orders: delivery address snapshot, cancellation/refund state, richer reconciliation records
+- Payments: payment attempts, provider responses, refund records
+- Delivery: assignment history, courier availability windows, route checkpoints
 
 ## Migrations and seeding
 

@@ -21,7 +21,11 @@ public sealed class OrdersController(IOrderService orderService) : ControllerBas
             return this.ValidationProblem(validationResult.ToDictionary());
         }
 
-        var order = await orderService.CreateAsync(request, cancellationToken);
+        var idempotencyKey = Request.Headers.TryGetValue("Idempotency-Key", out var values)
+            ? values.ToString()
+            : request.IdempotencyKey;
+
+        var order = await orderService.CreateAsync(request with { IdempotencyKey = idempotencyKey }, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = order.Id }, order);
     }
 
@@ -39,6 +43,7 @@ public sealed class CreateOrderRequestValidator : AbstractValidator<CreateOrderR
     {
         RuleFor(x => x.UserId).NotEmpty();
         RuleFor(x => x.Items).NotEmpty();
+        RuleFor(x => x.IdempotencyKey).MaximumLength(120);
         RuleForEach(x => x.Items).SetValidator(new CreateOrderItemRequestValidator());
     }
 }

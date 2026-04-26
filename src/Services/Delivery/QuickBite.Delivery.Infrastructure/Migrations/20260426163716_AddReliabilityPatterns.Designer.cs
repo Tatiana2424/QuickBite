@@ -3,17 +3,20 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using QuickBite.Orders.Infrastructure;
+using QuickBite.Delivery.Infrastructure;
 
 #nullable disable
 
-namespace QuickBite.Orders.Infrastructure.Migrations
+namespace QuickBite.Delivery.Infrastructure.Migrations
 {
-    [DbContext(typeof(OrdersDbContext))]
-    partial class OrdersDbContextModelSnapshot : ModelSnapshot
+    [DbContext(typeof(DeliveryDbContext))]
+    [Migration("20260426163716_AddReliabilityPatterns")]
+    partial class AddReliabilityPatterns
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -140,7 +143,7 @@ namespace QuickBite.Orders.Infrastructure.Migrations
                     b.ToTable("OutboxMessages", (string)null);
                 });
 
-            modelBuilder.Entity("QuickBite.Orders.Domain.Order", b =>
+            modelBuilder.Entity("QuickBite.Delivery.Domain.Courier", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -149,68 +152,56 @@ namespace QuickBite.Orders.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<string>("IdempotencyKey")
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("TotalAmount")
-                        .HasColumnType("decimal(10,2)");
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
 
                     b.Property<DateTimeOffset?>("UpdatedAtUtc")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId", "IdempotencyKey")
-                        .IsUnique()
-                        .HasFilter("[IdempotencyKey] IS NOT NULL");
-
-                    b.ToTable("Orders", (string)null);
+                    b.ToTable("Couriers", (string)null);
                 });
 
-            modelBuilder.Entity("QuickBite.Orders.Domain.OrderItem", b =>
+            modelBuilder.Entity("QuickBite.Delivery.Domain.Delivery", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTimeOffset>("CreatedAtUtc")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<Guid>("MenuItemId")
+                    b.Property<Guid>("CourierId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid>("OrderId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("Quantity")
+                    b.Property<int>("Status")
                         .HasColumnType("int");
-
-                    b.Property<decimal>("UnitPrice")
-                        .HasColumnType("decimal(10,2)");
 
                     b.Property<DateTimeOffset?>("UpdatedAtUtc")
                         .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OrderId");
+                    b.HasIndex("CourierId");
 
-                    b.ToTable("OrderItems", (string)null);
+                    b.HasIndex("OrderId")
+                        .IsUnique();
+
+                    b.ToTable("Deliveries", (string)null);
                 });
 
-            modelBuilder.Entity("QuickBite.Orders.Domain.OrderStatusHistory", b =>
+            modelBuilder.Entity("QuickBite.Delivery.Domain.DeliveryStatusHistory", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -222,7 +213,7 @@ namespace QuickBite.Orders.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<Guid>("OrderId")
+                    b.Property<Guid>("DeliveryId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Reason")
@@ -238,36 +229,31 @@ namespace QuickBite.Orders.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OrderId");
+                    b.HasIndex("DeliveryId");
 
-                    b.ToTable("OrderStatusHistory", (string)null);
+                    b.ToTable("DeliveryStatusHistory", (string)null);
                 });
 
-            modelBuilder.Entity("QuickBite.Orders.Domain.OrderItem", b =>
+            modelBuilder.Entity("QuickBite.Delivery.Domain.Delivery", b =>
                 {
-                    b.HasOne("QuickBite.Orders.Domain.Order", "Order")
-                        .WithMany("Items")
-                        .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Order");
-                });
-
-            modelBuilder.Entity("QuickBite.Orders.Domain.OrderStatusHistory", b =>
-                {
-                    b.HasOne("QuickBite.Orders.Domain.Order", "Order")
+                    b.HasOne("QuickBite.Delivery.Domain.Courier", "Courier")
                         .WithMany()
-                        .HasForeignKey("OrderId")
+                        .HasForeignKey("CourierId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Order");
+                    b.Navigation("Courier");
                 });
 
-            modelBuilder.Entity("QuickBite.Orders.Domain.Order", b =>
+            modelBuilder.Entity("QuickBite.Delivery.Domain.DeliveryStatusHistory", b =>
                 {
-                    b.Navigation("Items");
+                    b.HasOne("QuickBite.Delivery.Domain.Delivery", "Delivery")
+                        .WithMany()
+                        .HasForeignKey("DeliveryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Delivery");
                 });
 #pragma warning restore 612, 618
         }

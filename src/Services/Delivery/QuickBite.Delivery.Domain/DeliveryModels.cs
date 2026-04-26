@@ -25,6 +25,27 @@ public sealed class Courier : Entity
     }
 }
 
+public sealed class DeliveryStatusHistory : Entity
+{
+    public Guid DeliveryId { get; private set; }
+    public DeliveryStatus Status { get; private set; }
+    public string Reason { get; private set; } = string.Empty;
+    public DateTimeOffset ChangedAtUtc { get; private set; }
+    public Delivery? Delivery { get; private set; }
+
+    private DeliveryStatusHistory()
+    {
+    }
+
+    public DeliveryStatusHistory(Guid deliveryId, DeliveryStatus status, string reason)
+    {
+        DeliveryId = deliveryId;
+        Status = status;
+        Reason = reason;
+        ChangedAtUtc = DateTimeOffset.UtcNow;
+    }
+}
+
 public sealed class Delivery : Entity
 {
     public Guid OrderId { get; private set; }

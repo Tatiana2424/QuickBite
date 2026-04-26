@@ -16,6 +16,9 @@ public sealed class DeliveryDbContext(DbContextOptions<DeliveryDbContext> option
 {
     public DbSet<QuickBite.Delivery.Domain.Delivery> Deliveries => Set<QuickBite.Delivery.Domain.Delivery>();
     public DbSet<Courier> Couriers => Set<Courier>();
+    public DbSet<DeliveryStatusHistory> DeliveryStatusHistory => Set<DeliveryStatusHistory>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<InboxMessage> InboxMessages => Set<InboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -34,6 +37,17 @@ public sealed class DeliveryDbContext(DbContextOptions<DeliveryDbContext> option
             entity.HasIndex(x => x.OrderId).IsUnique();
             entity.HasOne(x => x.Courier).WithMany().HasForeignKey(x => x.CourierId);
         });
+
+        modelBuilder.Entity<DeliveryStatusHistory>(entity =>
+        {
+            entity.ToTable("DeliveryStatusHistory");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Reason).HasMaxLength(300);
+            entity.HasOne(x => x.Delivery).WithMany().HasForeignKey(x => x.DeliveryId);
+        });
+
+        modelBuilder.ConfigureOutbox();
+        modelBuilder.ConfigureInbox();
     }
 }
 
@@ -49,6 +63,7 @@ public static class DeliveryInfrastructureServiceCollectionExtensions
         services.AddKafkaInfrastructure(configuration);
         services.AddScoped<IDeliveryReadService, DeliveryReadService>();
         services.AddHostedService<PaymentSucceededConsumer>();
+        services.AddHostedService<DeliveryOutboxPublisher>();
         return services;
     }
 
@@ -87,6 +102,10 @@ internal sealed class DeliveryReadService(DeliveryDbContext dbContext) : IDelive
     }
 }
 
+internal sealed class DeliveryOutboxPublisher(
+    IServiceScopeFactory scopeFactory,
+    ILogger<DeliveryOutboxPublisher> logger) : OutboxPublisherBackgroundService<DeliveryDbContext>(scopeFactory, logger);
+
 internal sealed class PaymentSucceededConsumer : KafkaConsumerBackgroundService<PaymentSucceededEvent>
 {
     private readonly IServiceScopeFactory _scopeFactory;
@@ -108,23 +127,40 @@ internal sealed class PaymentSucceededConsumer : KafkaConsumerBackgroundService<
     {
         await using var scope = _scopeFactory.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<DeliveryDbContext>();
-        var producer = scope.ServiceProvider.GetRequiredService<IKafkaProducer>();
         var kafkaOptions = scope.ServiceProvider.GetRequiredService<IOptions<KafkaOptions>>();
+
+        if (await dbContext.InboxMessages.AnyAsync(x => x.EventId == envelope.EventId && x.Consumer == GroupId, cancellationToken))
+        {
+            return;
+        }
+
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        var inboxMessage = new InboxMessage(envelope.EventId, GroupId, TopicName, envelope.EventType);
+        dbContext.InboxMessages.Add(inboxMessage);
 
         if (await dbContext.Deliveries.AnyAsync(x => x.OrderId == envelope.Payload.OrderId, cancellationToken))
         {
+            inboxMessage.MarkProcessed(DateTimeOffset.UtcNow);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
             return;
         }
 
         var courier = await dbContext.Couriers.OrderBy(x => x.Name).FirstAsync(cancellationToken);
         var delivery = new QuickBite.Delivery.Domain.Delivery(envelope.Payload.OrderId, courier.Id);
         dbContext.Deliveries.Add(delivery);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        dbContext.DeliveryStatusHistory.Add(new DeliveryStatusHistory(delivery.Id, delivery.Status, "Courier assigned after successful payment."));
 
-        await producer.PublishAsync(
+        dbContext.OutboxMessages.Add(OutboxMessage.Create(
             kafkaOptions.Value.Topics.DeliveryAssigned,
             new DeliveryAssignedEvent(delivery.OrderId, delivery.Id, courier.Id, courier.Name),
-            cancellationToken);
+            kafkaOptions.Value.Producer,
+            envelope.CorrelationId,
+            envelope.EventId));
+
+        inboxMessage.MarkProcessed(DateTimeOffset.UtcNow);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
     }
 }
 

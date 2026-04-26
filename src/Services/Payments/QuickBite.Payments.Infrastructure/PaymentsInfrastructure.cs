@@ -15,6 +15,9 @@ namespace QuickBite.Payments.Infrastructure;
 public sealed class PaymentsDbContext(DbContextOptions<PaymentsDbContext> options) : DbContext(options)
 {
     public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<PaymentStatusHistory> PaymentStatusHistory => Set<PaymentStatusHistory>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<InboxMessage> InboxMessages => Set<InboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -26,6 +29,17 @@ public sealed class PaymentsDbContext(DbContextOptions<PaymentsDbContext> option
             entity.Property(x => x.Amount).HasColumnType("decimal(10,2)");
             entity.Property(x => x.FailureReason).HasMaxLength(300);
         });
+
+        modelBuilder.Entity<PaymentStatusHistory>(entity =>
+        {
+            entity.ToTable("PaymentStatusHistory");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Reason).HasMaxLength(300);
+            entity.HasOne(x => x.Payment).WithMany().HasForeignKey(x => x.PaymentId);
+        });
+
+        modelBuilder.ConfigureOutbox();
+        modelBuilder.ConfigureInbox();
     }
 }
 
@@ -41,6 +55,7 @@ public static class PaymentsInfrastructureServiceCollectionExtensions
         services.AddKafkaInfrastructure(configuration);
         services.AddScoped<IPaymentReadService, PaymentReadService>();
         services.AddHostedService<OrderCreatedConsumer>();
+        services.AddHostedService<PaymentsOutboxPublisher>();
         return services;
     }
 
@@ -58,6 +73,10 @@ internal sealed class PaymentReadService(PaymentsDbContext dbContext) : IPayment
         return payment is null ? null : new PaymentDto(payment.Id, payment.OrderId, payment.Amount, payment.Status.ToString(), payment.FailureReason);
     }
 }
+
+internal sealed class PaymentsOutboxPublisher(
+    IServiceScopeFactory scopeFactory,
+    ILogger<PaymentsOutboxPublisher> logger) : OutboxPublisherBackgroundService<PaymentsDbContext>(scopeFactory, logger);
 
 internal sealed class OrderCreatedConsumer : KafkaConsumerBackgroundService<OrderCreatedEvent>
 {
@@ -80,11 +99,22 @@ internal sealed class OrderCreatedConsumer : KafkaConsumerBackgroundService<Orde
     {
         await using var scope = _scopeFactory.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<PaymentsDbContext>();
-        var producer = scope.ServiceProvider.GetRequiredService<IKafkaProducer>();
         var kafkaOptions = scope.ServiceProvider.GetRequiredService<IOptions<KafkaOptions>>();
+
+        if (await dbContext.InboxMessages.AnyAsync(x => x.EventId == envelope.EventId && x.Consumer == GroupId, cancellationToken))
+        {
+            return;
+        }
+
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        var inboxMessage = new InboxMessage(envelope.EventId, GroupId, TopicName, envelope.EventType);
+        dbContext.InboxMessages.Add(inboxMessage);
 
         if (await dbContext.Payments.AnyAsync(x => x.OrderId == envelope.Payload.OrderId, cancellationToken))
         {
+            inboxMessage.MarkProcessed(DateTimeOffset.UtcNow);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
             return;
         }
 
@@ -96,22 +126,33 @@ internal sealed class OrderCreatedConsumer : KafkaConsumerBackgroundService<Orde
             isSuccessful ? null : "Payment was rejected by the simulated provider.");
 
         dbContext.Payments.Add(payment);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        dbContext.PaymentStatusHistory.Add(new PaymentStatusHistory(
+            payment.Id,
+            payment.Status,
+            isSuccessful ? "Simulated payment provider approved the payment." : payment.FailureReason ?? "Payment failed."));
 
         if (payment.Status == PaymentStatus.Succeeded)
         {
-            await producer.PublishAsync(
+            dbContext.OutboxMessages.Add(OutboxMessage.Create(
                 kafkaOptions.Value.Topics.PaymentSucceeded,
                 new PaymentSucceededEvent(payment.OrderId, payment.Id, payment.Amount),
-                cancellationToken);
+                kafkaOptions.Value.Producer,
+                envelope.CorrelationId,
+                envelope.EventId));
         }
         else
         {
-            await producer.PublishAsync(
+            dbContext.OutboxMessages.Add(OutboxMessage.Create(
                 kafkaOptions.Value.Topics.PaymentFailed,
                 new PaymentFailedEvent(payment.OrderId, payment.Id, payment.Amount, payment.FailureReason ?? "Payment failed."),
-                cancellationToken);
+                kafkaOptions.Value.Producer,
+                envelope.CorrelationId,
+                envelope.EventId));
         }
+
+        inboxMessage.MarkProcessed(DateTimeOffset.UtcNow);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
     }
 }
 

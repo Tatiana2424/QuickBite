@@ -1,11 +1,13 @@
 using System.Text.Json;
 using Confluent.Kafka;
 using Confluent.Kafka.Admin;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using QuickBite.BuildingBlocks.Common;
 using QuickBite.BuildingBlocks.Contracts;
 
 namespace QuickBite.BuildingBlocks.Kafka;
@@ -158,6 +160,16 @@ public interface IKafkaProducer
 {
     Task PublishAsync<T>(string topic, T message, CancellationToken cancellationToken = default)
         where T : IIntegrationEvent;
+
+    Task PublishSerializedAsync(
+        string topic,
+        string messageKey,
+        string envelopeJson,
+        Guid eventId,
+        string eventType,
+        int eventVersion,
+        Guid correlationId,
+        CancellationToken cancellationToken = default);
 }
 
 public sealed class NoOpKafkaProducer(ILogger<NoOpKafkaProducer> logger) : IKafkaProducer
@@ -168,6 +180,24 @@ public sealed class NoOpKafkaProducer(ILogger<NoOpKafkaProducer> logger) : IKafk
         logger.LogInformation(
             "Kafka publishing is disabled. Skipping event {EventType} for topic {TopicName}.",
             message.EventType,
+            topic);
+
+        return Task.CompletedTask;
+    }
+
+    public Task PublishSerializedAsync(
+        string topic,
+        string messageKey,
+        string envelopeJson,
+        Guid eventId,
+        string eventType,
+        int eventVersion,
+        Guid correlationId,
+        CancellationToken cancellationToken = default)
+    {
+        logger.LogInformation(
+            "Kafka publishing is disabled. Skipping outbox event {EventType} for topic {TopicName}.",
+            eventType,
             topic);
 
         return Task.CompletedTask;
@@ -210,6 +240,30 @@ public sealed class KafkaProducer : IKafkaProducer, IDisposable
                 new Header("event-type", envelope.EventType.ToUtf8Bytes()),
                 new Header("event-version", envelope.EventVersion.ToString().ToUtf8Bytes()),
                 new Header("correlation-id", envelope.CorrelationId.ToString("N").ToUtf8Bytes())
+            ]
+        }, cancellationToken);
+    }
+
+    public Task PublishSerializedAsync(
+        string topic,
+        string messageKey,
+        string envelopeJson,
+        Guid eventId,
+        string eventType,
+        int eventVersion,
+        Guid correlationId,
+        CancellationToken cancellationToken = default)
+    {
+        return _producer.ProduceAsync(topic, new Message<string, string>
+        {
+            Key = messageKey,
+            Value = envelopeJson,
+            Headers =
+            [
+                new Header("event-id", eventId.ToString("N").ToUtf8Bytes()),
+                new Header("event-type", eventType.ToUtf8Bytes()),
+                new Header("event-version", eventVersion.ToString().ToUtf8Bytes()),
+                new Header("correlation-id", correlationId.ToString("N").ToUtf8Bytes())
             ]
         }, cancellationToken);
     }
@@ -436,6 +490,90 @@ public sealed record DeadLetterMessage(
     string ErrorMessage,
     DateTimeOffset FailedAtUtc,
     string RawMessage);
+
+public abstract class OutboxPublisherBackgroundService<TDbContext> : BackgroundService
+    where TDbContext : DbContext
+{
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ILogger _logger;
+    private readonly TimeSpan _pollInterval = TimeSpan.FromSeconds(2);
+    private readonly TimeSpan _retryDelay = TimeSpan.FromSeconds(10);
+
+    protected OutboxPublisherBackgroundService(IServiceScopeFactory scopeFactory, ILogger logger)
+    {
+        _scopeFactory = scopeFactory;
+        _logger = logger;
+    }
+
+    protected virtual int BatchSize => 25;
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                await PublishBatchAsync(stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Outbox publisher failed while processing a batch.");
+            }
+
+            await Task.Delay(_pollInterval, stoppingToken);
+        }
+    }
+
+    private async Task PublishBatchAsync(CancellationToken cancellationToken)
+    {
+        await using var scope = _scopeFactory.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<TDbContext>();
+        var producer = scope.ServiceProvider.GetRequiredService<IKafkaProducer>();
+        var now = DateTimeOffset.UtcNow;
+
+        var messages = await dbContext.Set<OutboxMessage>()
+            .Where(x => x.PublishedAtUtc == null && (x.NextAttemptAtUtc == null || x.NextAttemptAtUtc <= now))
+            .OrderBy(x => x.CreatedAtUtc)
+            .Take(BatchSize)
+            .ToListAsync(cancellationToken);
+
+        foreach (var message in messages)
+        {
+            try
+            {
+                await producer.PublishSerializedAsync(
+                    message.TopicName,
+                    message.MessageKey,
+                    message.EnvelopeJson,
+                    message.EventId,
+                    message.EventType,
+                    message.EventVersion,
+                    message.CorrelationId,
+                    cancellationToken);
+
+                message.MarkPublished(DateTimeOffset.UtcNow);
+            }
+            catch (Exception exception)
+            {
+                message.MarkFailed(exception.Message, DateTimeOffset.UtcNow.Add(_retryDelay));
+                _logger.LogWarning(
+                    exception,
+                    "Outbox event {EventId} failed to publish to topic {TopicName}.",
+                    message.EventId,
+                    message.TopicName);
+            }
+        }
+
+        if (messages.Count > 0)
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+    }
+}
 
 public sealed class KafkaTopicInitializer(IOptions<KafkaOptions> options, ILogger<KafkaTopicInitializer> logger) : IHostedService
 {

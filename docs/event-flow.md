@@ -3,10 +3,13 @@
 ## Order lifecycle
 
 1. A client creates an order through the Orders API.
-2. The Orders service stores the order and publishes `order.created` to the versioned order-created topic.
-3. The Payments service consumes `order.created` and decides whether the simulated payment succeeds.
-4. A successful payment emits `payment.succeeded`; a failure emits `payment.failed`.
-5. The Delivery service consumes `payment.succeeded`, creates a delivery, assigns a courier, and emits `delivery.assigned`.
+2. The Orders service stores the order and an `order.created` outbox record in the same database transaction.
+3. The Orders outbox publisher publishes `order.created` to the versioned order-created topic.
+4. The Payments service consumes `order.created`, records the event in its inbox, stores the payment result, and writes `payment.succeeded` or `payment.failed` to its outbox in the same transaction.
+5. The Payments outbox publisher emits the payment result event.
+6. The Orders service consumes payment result events and updates order status to `Confirmed` or `Failed`.
+7. The Delivery service consumes `payment.succeeded`, records the event in its inbox, creates a delivery, assigns a courier, and writes `delivery.assigned` to its outbox.
+8. The Delivery outbox publisher emits `delivery.assigned`.
 
 ## Topics used in the starter
 
@@ -38,16 +41,25 @@ Kafka messages use the order id as the message key when the event contains `Orde
 The current implementation includes:
 
 - idempotent Kafka producers with `acks=all`;
+- transactional outbox tables for Orders, Payments, and Delivery;
+- inbox/processed-message tracking for payment and delivery consumers;
+- idempotency-key support for externally retriable order creation;
+- status-history tables for order, payment, and delivery state transitions;
 - startup topic initialization with bounded retry for local/container development;
 - manual consumer offset commits after successful handling;
 - bounded retry attempts with configurable backoff;
 - dead-letter publishing for deserialization and permanent handler failures.
 
-## Scope of the first version
+## Recovery model
 
-The current implementation intentionally does not include the full production reliability stack yet:
+- If a service saves business data but crashes before publishing Kafka, the unpublished row remains in `OutboxMessages` and is retried by the service outbox publisher.
+- If Kafka delivers a duplicate event, the consumer checks `InboxMessages` by `(EventId, Consumer)` and skips already processed messages.
+- If a handler fails after retries, the Kafka consumer moves the raw message to the matching `.dlq` topic for inspection and replay planning.
+- Order, payment, and delivery status history tables provide an audit trail for reconciliation jobs and manual support workflows.
 
-- Orders still publishes directly after persistence instead of using a transactional outbox.
-- Consumers do not yet persist inbox/deduplication state.
-- There is no saga/process-manager orchestration yet.
+## Scope of the current version
+
+- The saga is choreographed through events rather than orchestrated by a process manager.
+- Outbox publishing uses polling and bounded retry state; advanced leasing/partitioned dispatch can be added later if multiple replicas publish the same service outbox.
+- Reconciliation is documented through status history and durable message state, but a dedicated scheduled reconciliation job is deferred.
 - Schema registry and contract compatibility checks are deferred until message contracts become more complex.

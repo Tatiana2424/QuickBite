@@ -22,7 +22,7 @@ QuickBite uses a modular monorepo with separate projects for each microservice l
 - `QuickBite.BuildingBlocks.Common`: base entity, simple result primitives, outbox/inbox entities, and EF model configuration helpers.
 - `QuickBite.BuildingBlocks.Contracts`: integration-event contracts, version constants, and event envelope.
 - `QuickBite.BuildingBlocks.Kafka`: producer abstraction, hosted consumer base, outbox publisher base, typed options, topic initialization, retry, and dead-letter support.
-- `QuickBite.BuildingBlocks.Observability`: Serilog bootstrapping and correlation id middleware.
+- `QuickBite.BuildingBlocks.Observability`: Serilog bootstrapping, correlation id middleware, OpenTelemetry tracing/metrics, Prometheus scraping, and JSON health responses.
 
 ## Data ownership
 
@@ -44,3 +44,4 @@ See `docs/database-architecture.md` for the implemented tables, seed policy, and
 
 See `docs/api-gateway-contracts.md` for HTTP error, correlation, versioning, and gateway routing conventions.
 See `docs/security-baseline.md` for authentication, authorization, secret handling, gateway security, and service-to-service trust conventions.
+See `docs/observability.md` for logs, traces, metrics, health checks, dashboards, alerts, and runbook starters.

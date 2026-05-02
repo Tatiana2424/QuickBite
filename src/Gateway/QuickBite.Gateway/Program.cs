@@ -16,9 +16,9 @@ app.UseQuickBiteExceptionHandling(app.Environment);
 app.UseQuickBiteObservability();
 app.UseQuickBiteApiVersionHeader();
 app.UseQuickBiteGatewaySecurity();
-app.MapHealthChecks("/health");
-app.MapHealthChecks("/health/live");
-app.MapHealthChecks("/health/ready");
+app.MapHealthChecks("/health", ObservabilityExtensions.QuickBiteHealthCheckOptions());
+app.MapHealthChecks("/health/live", ObservabilityExtensions.QuickBiteHealthCheckOptions(_ => false));
+app.MapHealthChecks("/health/ready", ObservabilityExtensions.QuickBiteHealthCheckOptions());
 app.MapGet("/", () => Results.Redirect("/health"));
 app.MapReverseProxy();
 

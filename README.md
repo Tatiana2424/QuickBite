@@ -14,6 +14,7 @@ QuickBite is an event-driven food delivery starter platform built as a .NET 8 mo
 - SQL Server + Kafka + Kafka UI orchestration with Docker Compose.
 - Database-per-service migrations and environment-aware seed strategy.
 - Versioned Kafka topic configuration with retry, dead-letter topic support, outbox publishing, and inbox deduplication.
+- OpenTelemetry traces/metrics with Prometheus scraping and Grafana dashboard provisioning.
 - Shared API conventions for Problem Details, correlation IDs, API version headers, and gateway validation.
 - Identity refresh-token rotation, role policies, safer JWT secret defaults, and gateway security headers/rate limiting.
 
@@ -115,6 +116,8 @@ Use this mode when validating the full containerized experience.
    - Gateway: `http://localhost:8080/health`
    - Gateway readiness: `http://localhost:8080/health/ready`
    - Kafka UI: `http://localhost:8085`
+   - Prometheus: `http://localhost:9090`
+   - Grafana: `http://localhost:3001`
    - Frontend: `http://localhost:3000`
 
 ### Backend services from the repo root
@@ -129,6 +132,7 @@ Use this mode when validating the full containerized experience.
    - `/health`
    - `/health/live`
    - `/health/ready`
+   - `/metrics`
 
 ### Frontend
 
@@ -151,6 +155,7 @@ API and gateway contracts are documented in `docs/api-gateway-contracts.md`.
 Database details are documented in `docs/database-architecture.md`.
 Kafka details are documented in `docs/kafka-architecture.md`.
 Security details are documented in `docs/security-baseline.md`.
+Observability details are documented in `docs/observability.md`.
 
 ## Current status
 
@@ -162,6 +167,7 @@ This initial version focuses on architecture, wiring, and developer experience:
 - Identity now issues access/refresh token pairs and supports refresh-token rotation and logout revocation.
 - Base configuration no longer ships with an active JWT signing key; local development explicitly opts into the demo key.
 - Kafka now uses versioned topics, enriched envelopes, idempotent producers, transactional outbox publishing, inbox deduplication, manual consumer commits, bounded retries, and dead-letter topics.
+- Observability now includes structured request logs, OpenTelemetry traces and metrics, Prometheus scraping, Grafana provisioning, and starter alert rules.
 - Each service has its own DbContext, initial migration, and owned database.
 - Identity, Catalog, and Delivery seed development data through startup configuration.
 - The frontend is intentionally lightweight but already points at the gateway.

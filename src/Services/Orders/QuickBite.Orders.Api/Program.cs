@@ -13,7 +13,8 @@ builder.Services.AddOrdersInfrastructure(builder.Configuration);
 builder.Services.AddQuickBiteApiDefaults();
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddScoped<IValidator<CreateOrderRequest>, CreateOrderRequestValidator>();
-builder.Services.AddHealthChecks();
+builder.Services.AddHealthChecks()
+    .AddQuickBiteDbContextReadiness<OrdersDbContext>("orders-db");
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -31,8 +32,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapControllers();
-app.MapHealthChecks("/health");
-app.MapHealthChecks("/health/live");
-app.MapHealthChecks("/health/ready");
+app.MapHealthChecks("/health", ObservabilityExtensions.QuickBiteHealthCheckOptions());
+app.MapHealthChecks("/health/live", ObservabilityExtensions.QuickBiteHealthCheckOptions(_ => false));
+app.MapHealthChecks("/health/ready", ObservabilityExtensions.QuickBiteHealthCheckOptions(check => check.Tags.Contains("ready")));
 
 app.Run();

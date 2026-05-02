@@ -1,0 +1,68 @@
+groups:
+  - name: quickbite-platform
+    rules:
+      - alert: QuickBiteServiceDown
+        expr: up{job=~"quickbite-.*"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "QuickBite scrape target is down"
+          description: "{{ $labels.job }} has not been scrapeable for more than 2 minutes."
+
+      - alert: QuickBiteHighHttpErrorRate
+        expr: |
+          sum by (job) (rate(http_server_request_duration_seconds_count{http_response_status_code=~"5.."}[5m]))
+          /
+          sum by (job) (rate(http_server_request_duration_seconds_count[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High HTTP 5xx error ratio"
+          description: "{{ $labels.job }} has more than 5% 5xx responses over 5 minutes."
+
+      - alert: QuickBiteHighHttpLatency
+        expr: histogram_quantile(0.95, sum by (job, le) (rate(http_server_request_duration_seconds_bucket[5m]))) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High HTTP p95 latency"
+          description: "{{ $labels.job }} p95 latency is above 1 second."
+
+      - alert: QuickBiteKafkaDeadLetters
+        expr: sum by (topic, consumer_group) (increase(quickbite_kafka_deadletters_total[10m])) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Kafka dead-letter messages detected"
+          description: "{{ $labels.topic }} has new DLQ messages for {{ $labels.consumer_group }}."
+
+      - alert: QuickBiteKafkaRetriesHigh
+        expr: sum by (topic, consumer_group) (rate(quickbite_kafka_handler_retries_total[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kafka handler retries are elevated"
+          description: "{{ $labels.consumer_group }} is retrying messages from {{ $labels.topic }}."
+
+      - alert: QuickBiteKafkaConsumerLagHigh
+        expr: histogram_quantile(0.95, sum by (topic, consumer_group, le) (rate(quickbite_kafka_consumer_lag_bucket[5m]))) > 100
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kafka consumer lag is high"
+          description: "{{ $labels.consumer_group }} appears behind on {{ $labels.topic }}."
+
+      - alert: QuickBiteOutboxPublishFailures
+        expr: sum by (topic) (increase(quickbite_outbox_publish_failures_total[10m])) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Outbox publish failures detected"
+          description: "Outbox publishing to {{ $labels.topic }} has failed recently."

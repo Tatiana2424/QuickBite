@@ -21,7 +21,8 @@ builder.Services.AddScoped<IValidator<RegisterRequest>, RegisterRequestValidator
 builder.Services.AddScoped<IValidator<LoginRequest>, LoginRequestValidator>();
 builder.Services.AddScoped<IValidator<RefreshTokenRequest>, RefreshTokenRequestValidator>();
 builder.Services.AddScoped<IValidator<RevokeRefreshTokenRequest>, RevokeRefreshTokenRequestValidator>();
-builder.Services.AddHealthChecks();
+builder.Services.AddHealthChecks()
+    .AddQuickBiteDbContextReadiness<IdentityDbContext>("identity-db");
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -70,8 +71,8 @@ if (app.Environment.IsDevelopment())
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.MapHealthChecks("/health");
-app.MapHealthChecks("/health/live");
-app.MapHealthChecks("/health/ready");
+app.MapHealthChecks("/health", ObservabilityExtensions.QuickBiteHealthCheckOptions());
+app.MapHealthChecks("/health/live", ObservabilityExtensions.QuickBiteHealthCheckOptions(_ => false));
+app.MapHealthChecks("/health/ready", ObservabilityExtensions.QuickBiteHealthCheckOptions(check => check.Tags.Contains("ready")));
 
 app.Run();

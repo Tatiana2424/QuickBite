@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Diagnostics;
 using Confluent.Kafka;
 using Confluent.Kafka.Admin;
 using Microsoft.EntityFrameworkCore;
@@ -182,6 +183,7 @@ public sealed class NoOpKafkaProducer(ILogger<NoOpKafkaProducer> logger) : IKafk
             message.EventType,
             topic);
 
+        QuickBiteTelemetry.KafkaMessagesPublished.Add(1, QuickBiteTelemetry.Tags("topic", topic, "event.type", message.EventType, "producer", "noop"));
         return Task.CompletedTask;
     }
 
@@ -200,6 +202,7 @@ public sealed class NoOpKafkaProducer(ILogger<NoOpKafkaProducer> logger) : IKafk
             eventType,
             topic);
 
+        QuickBiteTelemetry.KafkaMessagesPublished.Add(1, QuickBiteTelemetry.Tags("topic", topic, "event.type", eventType, "producer", "noop"));
         return Task.CompletedTask;
     }
 }
@@ -224,27 +227,17 @@ public sealed class KafkaProducer : IKafkaProducer, IDisposable
         }).Build();
     }
 
-    public Task PublishAsync<T>(string topic, T message, CancellationToken cancellationToken = default)
+    public async Task PublishAsync<T>(string topic, T message, CancellationToken cancellationToken = default)
         where T : IIntegrationEvent
     {
         var envelope = CreateEnvelope(message, _options.Producer);
         var payload = JsonSerializer.Serialize(envelope, SerializerOptions);
 
-        return _producer.ProduceAsync(topic, new Message<string, string>
-        {
-            Key = ResolveMessageKey(message, envelope.EventId),
-            Value = payload,
-            Headers =
-            [
-                new Header("event-id", envelope.EventId.ToString("N").ToUtf8Bytes()),
-                new Header("event-type", envelope.EventType.ToUtf8Bytes()),
-                new Header("event-version", envelope.EventVersion.ToString().ToUtf8Bytes()),
-                new Header("correlation-id", envelope.CorrelationId.ToString("N").ToUtf8Bytes())
-            ]
-        }, cancellationToken);
+        using var activity = StartPublishActivity(topic, envelope.EventType, envelope.EventId, envelope.CorrelationId);
+        await PublishCoreAsync(topic, ResolveMessageKey(message, envelope.EventId), payload, envelope.EventId, envelope.EventType, envelope.EventVersion, envelope.CorrelationId, cancellationToken);
     }
 
-    public Task PublishSerializedAsync(
+    public async Task PublishSerializedAsync(
         string topic,
         string messageKey,
         string envelopeJson,
@@ -254,18 +247,54 @@ public sealed class KafkaProducer : IKafkaProducer, IDisposable
         Guid correlationId,
         CancellationToken cancellationToken = default)
     {
-        return _producer.ProduceAsync(topic, new Message<string, string>
+        using var activity = StartPublishActivity(topic, eventType, eventId, correlationId);
+        await PublishCoreAsync(topic, messageKey, envelopeJson, eventId, eventType, eventVersion, correlationId, cancellationToken);
+    }
+
+    private async Task PublishCoreAsync(
+        string topic,
+        string messageKey,
+        string envelopeJson,
+        Guid eventId,
+        string eventType,
+        int eventVersion,
+        Guid correlationId,
+        CancellationToken cancellationToken)
+    {
+        try
         {
-            Key = messageKey,
-            Value = envelopeJson,
-            Headers =
-            [
-                new Header("event-id", eventId.ToString("N").ToUtf8Bytes()),
-                new Header("event-type", eventType.ToUtf8Bytes()),
-                new Header("event-version", eventVersion.ToString().ToUtf8Bytes()),
-                new Header("correlation-id", correlationId.ToString("N").ToUtf8Bytes())
-            ]
-        }, cancellationToken);
+            await _producer.ProduceAsync(topic, new Message<string, string>
+            {
+                Key = messageKey,
+                Value = envelopeJson,
+                Headers =
+                [
+                    new Header("event-id", eventId.ToString("N").ToUtf8Bytes()),
+                    new Header("event-type", eventType.ToUtf8Bytes()),
+                    new Header("event-version", eventVersion.ToString().ToUtf8Bytes()),
+                    new Header("correlation-id", correlationId.ToString("N").ToUtf8Bytes())
+                ]
+            }, cancellationToken);
+
+            QuickBiteTelemetry.KafkaMessagesPublished.Add(1, QuickBiteTelemetry.Tags("topic", topic, "event.type", eventType, "producer", _options.Producer));
+        }
+        catch (Exception exception)
+        {
+            Activity.Current?.SetStatus(ActivityStatusCode.Error, exception.Message);
+            QuickBiteTelemetry.KafkaPublishFailures.Add(1, QuickBiteTelemetry.Tags("topic", topic, "event.type", eventType, "producer", _options.Producer));
+            throw;
+        }
+    }
+
+    private static Activity? StartPublishActivity(string topic, string eventType, Guid eventId, Guid correlationId)
+    {
+        var activity = QuickBiteTelemetry.ActivitySource.StartActivity("kafka publish", ActivityKind.Producer);
+        activity?.SetTag("messaging.system", "kafka");
+        activity?.SetTag("messaging.destination.name", topic);
+        activity?.SetTag("messaging.message.id", eventId.ToString("N"));
+        activity?.SetTag("messaging.message.conversation_id", correlationId.ToString("N"));
+        activity?.SetTag("event.type", eventType);
+        return activity;
     }
 
     internal static EventEnvelope<T> CreateEnvelope<T>(T message, string producer)
@@ -352,6 +381,8 @@ public abstract class KafkaConsumerBackgroundService<T> : BackgroundService wher
                         continue;
                     }
 
+                    RecordConsumerLag(consumer, result);
+
                     var processed = await ProcessMessageAsync(result, deadLetterProducer, stoppingToken);
                     if (processed)
                     {
@@ -405,13 +436,25 @@ public abstract class KafkaConsumerBackgroundService<T> : BackgroundService wher
 
         for (var attempt = 1; attempt <= _options.Consumer.MaxRetryAttempts + 1; attempt++)
         {
+            using var activity = QuickBiteTelemetry.ActivitySource.StartActivity("kafka consume", ActivityKind.Consumer);
+            activity?.SetTag("messaging.system", "kafka");
+            activity?.SetTag("messaging.destination.name", TopicName);
+            activity?.SetTag("messaging.kafka.consumer.group", GroupId);
+            activity?.SetTag("messaging.kafka.partition", result.Partition.Value);
+            activity?.SetTag("messaging.kafka.offset", result.Offset.Value);
+            activity?.SetTag("messaging.message.id", envelope.EventId.ToString("N"));
+            activity?.SetTag("event.type", envelope.EventType);
+
             try
             {
                 await HandleAsync(envelope, cancellationToken);
+                QuickBiteTelemetry.KafkaMessagesConsumed.Add(1, QuickBiteTelemetry.Tags("topic", TopicName, "consumer.group", GroupId, "event.type", envelope.EventType));
                 return true;
             }
             catch (Exception exception) when (attempt <= _options.Consumer.MaxRetryAttempts)
             {
+                activity?.SetStatus(ActivityStatusCode.Error, exception.Message);
+                QuickBiteTelemetry.KafkaHandlerRetries.Add(1, QuickBiteTelemetry.Tags("topic", TopicName, "consumer.group", GroupId, "event.type", envelope.EventType));
                 _logger.LogWarning(
                     exception,
                     "Kafka handler attempt {AttemptNumber} failed for event {EventType} from topic {TopicName}.",
@@ -423,6 +466,7 @@ public abstract class KafkaConsumerBackgroundService<T> : BackgroundService wher
             }
             catch (Exception exception)
             {
+                activity?.SetStatus(ActivityStatusCode.Error, exception.Message);
                 _logger.LogError(
                     exception,
                     "Kafka handler failed permanently for event {EventType} from topic {TopicName}.",
@@ -464,6 +508,7 @@ public abstract class KafkaConsumerBackgroundService<T> : BackgroundService wher
             Value = JsonSerializer.Serialize(deadLetter, KafkaProducer.SerializerOptions)
         }, cancellationToken);
 
+        QuickBiteTelemetry.KafkaDeadLetters.Add(1, QuickBiteTelemetry.Tags("topic", TopicName, "deadletter.topic", deadLetterTopic, "consumer.group", GroupId));
         _logger.LogWarning(
             "Kafka message from topic {TopicName} offset {Offset} was moved to dead-letter topic {DeadLetterTopic}.",
             TopicName,
@@ -478,6 +523,20 @@ public abstract class KafkaConsumerBackgroundService<T> : BackgroundService wher
         return _options.Consumer.RetryBackoffMilliseconds == 0
             ? Task.CompletedTask
             : Task.Delay(TimeSpan.FromMilliseconds(_options.Consumer.RetryBackoffMilliseconds), cancellationToken);
+    }
+
+    private void RecordConsumerLag(IConsumer<Ignore, string> consumer, ConsumeResult<Ignore, string> result)
+    {
+        try
+        {
+            var watermark = consumer.QueryWatermarkOffsets(result.TopicPartition, TimeSpan.FromMilliseconds(250));
+            var lag = Math.Max(0, watermark.High.Value - result.Offset.Value - 1);
+            QuickBiteTelemetry.KafkaConsumerLag.Record(lag, QuickBiteTelemetry.Tags("topic", TopicName, "consumer.group", GroupId, "partition", result.Partition.Value.ToString()));
+        }
+        catch (Exception exception)
+        {
+            _logger.LogDebug(exception, "Could not calculate Kafka consumer lag for topic {TopicName}.", TopicName);
+        }
     }
 }
 
@@ -556,10 +615,12 @@ public abstract class OutboxPublisherBackgroundService<TDbContext> : BackgroundS
                     cancellationToken);
 
                 message.MarkPublished(DateTimeOffset.UtcNow);
+                QuickBiteTelemetry.OutboxMessagesPublished.Add(1, QuickBiteTelemetry.Tags("topic", message.TopicName, "event.type", message.EventType));
             }
             catch (Exception exception)
             {
                 message.MarkFailed(exception.Message, DateTimeOffset.UtcNow.Add(_retryDelay));
+                QuickBiteTelemetry.OutboxPublishFailures.Add(1, QuickBiteTelemetry.Tags("topic", message.TopicName, "event.type", message.EventType));
                 _logger.LogWarning(
                     exception,
                     "Outbox event {EventId} failed to publish to topic {TopicName}.",

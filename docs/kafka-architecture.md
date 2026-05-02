@@ -51,4 +51,4 @@ APIs initialize topics on startup when Kafka is enabled and use bounded retry so
 - Add an outbox pattern to Orders and Payments so database commits and event publishing are coordinated.
 - Add inbox/deduplication tables for idempotent consumers.
 - Add contract compatibility tests before changing event payloads.
-- Add richer observability around consumer lag, DLQ counts, and retry exhaustion.
+- Tune observability thresholds for consumer lag, DLQ counts, and retry exhaustion after real traffic exists.

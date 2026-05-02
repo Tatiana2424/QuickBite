@@ -1,10 +1,14 @@
 import { FormEvent, useState } from "react";
+import { ErrorState } from "../components/AsyncState";
+import { ApiError } from "../lib/apiErrors";
 import type { Order } from "../models";
 import { getOrder } from "../services/quickbiteService";
 
 export function OrdersPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [message, setMessage] = useState("Paste an order id after creating one via the Orders API.");
+  const [error, setError] = useState<ApiError | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -12,12 +16,17 @@ export function OrdersPage() {
     const orderId = String(formData.get("orderId") ?? "");
 
     try {
+      setIsLoading(true);
+      setError(null);
       const result = await getOrder(orderId);
       setOrder(result);
       setMessage("Order loaded successfully.");
-    } catch {
+    } catch (apiError) {
       setOrder(null);
-      setMessage("Order was not found or the Orders API is unavailable.");
+      setError(apiError instanceof ApiError ? apiError : null);
+      setMessage("Order lookup failed.");
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -28,10 +37,16 @@ export function OrdersPage() {
         <h2>Order lookup</h2>
       </div>
       <form className="stack" onSubmit={handleSubmit}>
-        <input name="orderId" placeholder="Order id" />
-        <button type="submit">Load order</button>
+        <label>
+          Order id
+          <input name="orderId" placeholder="Order id" required />
+        </label>
+        <button type="submit" disabled={isLoading}>
+          {isLoading ? "Loading..." : "Load order"}
+        </button>
       </form>
       <p className="muted">{message}</p>
+      {error && <ErrorState error={error} />}
       {order && (
         <article className="panel">
           <strong>{order.id}</strong>

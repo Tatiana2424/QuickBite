@@ -157,6 +157,7 @@ Kafka details are documented in `docs/kafka-architecture.md`.
 Security details are documented in `docs/security-baseline.md`.
 Observability details are documented in `docs/observability.md`.
 Testing and CI quality gates are documented in `docs/testing-strategy.md`.
+Frontend hardening details are documented in `docs/frontend-production-readiness.md`.
 
 ## Current status
 

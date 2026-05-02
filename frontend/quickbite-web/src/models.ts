@@ -31,3 +31,29 @@ export interface Order {
   totalAmount: number;
   items: OrderItem[];
 }
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  fullName: string;
+  roles: string[];
+}
+
+export interface AuthSession {
+  user: AuthUser;
+  accessToken: string;
+  accessTokenExpiresAtUtc: string;
+  refreshToken: string;
+  refreshTokenExpiresAtUtc: string;
+}
+
+export interface AuthResponse {
+  userId: string;
+  email: string;
+  fullName: string;
+  roles: string[];
+  accessToken: string;
+  accessTokenExpiresAtUtc: string;
+  refreshToken: string;
+  refreshTokenExpiresAtUtc: string;
+}

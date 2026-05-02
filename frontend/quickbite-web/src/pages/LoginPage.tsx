@@ -1,8 +1,22 @@
 import { FormEvent, useState } from "react";
-import { login } from "../services/quickbiteService";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
+import { ErrorState } from "../components/AsyncState";
+import { ApiError } from "../lib/apiErrors";
 
 export function LoginPage() {
-  const [result, setResult] = useState("Use demo credentials after registering through the Identity API.");
+  const { isAuthenticated, login, authError } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<ApiError | null>(null);
+  const redirectTo = typeof location.state === "object" && location.state !== null && "from" in location.state
+    ? String(location.state.from)
+    : "/orders";
+
+  if (isAuthenticated) {
+    return <Navigate to={redirectTo} replace />;
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -11,23 +25,36 @@ export function LoginPage() {
     const password = String(formData.get("password") ?? "");
 
     try {
-      const response = await login(email, password);
-      setResult(`Authenticated as ${response.fullName}. Access and refresh tokens received.`);
-    } catch {
-      setResult("Login failed. Register a user through the Identity API first.");
+      setIsSubmitting(true);
+      setSubmitError(null);
+      await login(email, password);
+      navigate(redirectTo, { replace: true });
+    } catch (error) {
+      setSubmitError(error instanceof ApiError ? error : authError);
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
   return (
     <section className="panel">
       <p className="eyebrow">Identity</p>
-      <h2>Login shell</h2>
+      <h2>Sign in to QuickBite</h2>
+      <p className="muted">Use the seeded demo account or any user registered through the Identity API.</p>
       <form className="stack" onSubmit={handleSubmit}>
-        <input name="email" type="email" placeholder="you@example.com" defaultValue="demo@quickbite.local" />
-        <input name="password" type="password" placeholder="Password" defaultValue="Pass123!" />
-        <button type="submit">Sign in</button>
+        <label>
+          Email
+          <input name="email" type="email" autoComplete="email" defaultValue="demo@quickbite.local" required />
+        </label>
+        <label>
+          Password
+          <input name="password" type="password" autoComplete="current-password" defaultValue="Pass123!" required />
+        </label>
+        <button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Signing in..." : "Sign in"}
+        </button>
       </form>
-      <p className="muted">{result}</p>
+      {submitError && <ErrorState error={submitError} />}
     </section>
   );
 }

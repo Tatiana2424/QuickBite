@@ -8,7 +8,7 @@ export default defineConfig({
     host: "0.0.0.0"
   },
   test: {
-    environment: "node",
-    include: ["test/**/*.test.ts"]
+    environment: "jsdom",
+    include: ["test/**/*.test.ts", "test/**/*.test.tsx"]
   }
 });

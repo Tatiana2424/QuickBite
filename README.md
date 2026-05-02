@@ -50,7 +50,7 @@ All services expose `GET /health`.
 - Backend: .NET 8, ASP.NET Core Web API, EF Core, SQL Server, Kafka, Serilog, FluentValidation, YARP
 - Frontend: React, TypeScript, Vite, React Router, TanStack Query, Axios
 - Infrastructure: Docker Compose, SQL Server, Kafka, Zookeeper, Kafka UI
-- Testing: xUnit project skeletons per service
+- Testing: xUnit domain and contract tests, Vitest frontend smoke tests, and GitHub Actions quality gates
 
 ## Running locally
 
@@ -156,6 +156,7 @@ Database details are documented in `docs/database-architecture.md`.
 Kafka details are documented in `docs/kafka-architecture.md`.
 Security details are documented in `docs/security-baseline.md`.
 Observability details are documented in `docs/observability.md`.
+Testing and CI quality gates are documented in `docs/testing-strategy.md`.
 
 ## Current status
 

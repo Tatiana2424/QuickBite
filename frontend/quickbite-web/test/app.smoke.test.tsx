@@ -104,6 +104,12 @@ describe("QuickBite app shell", () => {
     expect(await screen.findByRole("heading", { name: "Order lookup" })).toBeTruthy();
     expect(screen.getByText("New Customer")).toBeTruthy();
   });
+
+  it("prefills the login form with the seeded customer account", async () => {
+    renderApp("/login");
+
+    expect(await screen.findByDisplayValue("customer@quickbite.local")).toBeTruthy();
+  });
 });
 
 function renderApp(initialRoute: string) {

@@ -1,8 +1,10 @@
-import { Link, Route, Routes } from "react-router-dom";
+import { Link, NavLink, Route, Routes, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { useAuth } from "./auth/AuthContext";
 import { CartProvider, useCart } from "./cart/CartContext";
 import { AccountPage } from "./pages/AccountPage";
+import { CartPage } from "./pages/CartPage";
 import { CourierDeliveriesPage } from "./pages/CourierDeliveriesPage";
 import { LoginPage } from "./pages/LoginPage";
 import { OrderDetailsPage } from "./pages/OrderDetailsPage";
@@ -23,8 +25,14 @@ export function App() {
 function AppShell() {
   const { isAuthenticated, user, logout } = useAuth();
   const { itemCount } = useCart();
+  const location = useLocation();
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const canManageRestaurants = user?.roles.some((role) => role === "RestaurantAdmin" || role === "PlatformAdmin");
   const canDeliver = user?.roles.some((role) => role === "Courier" || role === "PlatformAdmin");
+
+  useEffect(() => {
+    setIsMobileNavOpen(false);
+  }, [location.pathname]);
 
   return (
     <div className="app-shell">
@@ -36,13 +44,30 @@ function AppShell() {
             <span>Fresh food, fast checkout</span>
           </div>
         </div>
-        <nav aria-label="Primary navigation">
-          <Link to="/">Restaurants</Link>
-          <Link to="/orders">My orders</Link>
-          {canManageRestaurants && <Link to="/admin/restaurants">Admin</Link>}
-          {canDeliver && <Link to="/courier/deliveries">Courier</Link>}
-          {isAuthenticated && <Link to="/account">Account</Link>}
-          {itemCount > 0 && <span className="cart-badge" aria-label={`${itemCount} items in cart`}>{itemCount}</span>}
+        <button
+          type="button"
+          className="mobile-menu-button button-secondary"
+          aria-controls="primary-navigation"
+          aria-expanded={isMobileNavOpen}
+          onClick={() => setIsMobileNavOpen((current) => !current)}
+        >
+          Menu
+        </button>
+        <nav
+          id="primary-navigation"
+          className={isMobileNavOpen ? "primary-nav primary-nav--open" : "primary-nav"}
+          aria-label="Primary navigation"
+        >
+          <NavLink to="/" end>Home</NavLink>
+          <NavLink to="/restaurants">Restaurants</NavLink>
+          <NavLink to="/cart">
+            Cart
+            {itemCount > 0 && <span className="cart-badge" aria-label={`${itemCount} items in cart`}>{itemCount}</span>}
+          </NavLink>
+          <NavLink to="/orders">Orders</NavLink>
+          {isAuthenticated && <NavLink to="/account">Account</NavLink>}
+          {canManageRestaurants && <NavLink to="/admin/restaurants">Admin</NavLink>}
+          {canDeliver && <NavLink to="/courier/deliveries">Courier</NavLink>}
         </nav>
         <div className="account-actions">
           {!isAuthenticated && <Link className="button-link" to="/login">Sign in</Link>}
@@ -60,7 +85,9 @@ function AppShell() {
       <main className="content">
         <Routes>
           <Route path="/" element={<RestaurantsPage />} />
+          <Route path="/restaurants" element={<RestaurantsPage />} />
           <Route path="/restaurants/:restaurantId" element={<RestaurantDetailsPage />} />
+          <Route path="/cart" element={<CartPage />} />
           <Route
             path="/orders"
             element={

@@ -276,11 +276,27 @@ test("lets signed-in customers add menu items and checkout", async ({ page }) =>
   await page.getByRole("button", { name: "Checkout" }).click();
 
   await expect(page.getByRole("heading", { name: "Order order-1" })).toBeVisible();
-  await expect(page.getByText("Succeeded")).toBeVisible();
-  await expect(page.getByText("Mia Brooks")).toBeVisible();
+  await expect(page.getByLabel("Order progress").getByText("Succeeded", { exact: true })).toBeVisible();
+  await expect(page.getByText("Payment is complete. The restaurant can start preparing the order.")).toBeVisible();
+  await expect(page.getByText("Mia Brooks", { exact: true })).toBeVisible();
   await expect(page.getByText("123 Market Street").first()).toBeVisible();
 
-  await page.getByRole("link", { name: "My orders" }).click();
+  await page.getByRole("link", { name: "Orders", exact: true }).click();
   await expect(page.getByRole("heading", { name: "My Orders" })).toBeVisible();
   await expect(page.getByText("2 x Harvest Bowl")).toBeVisible();
+});
+
+test("opens the cart route and mobile navigation", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 760 });
+  await page.goto("/");
+
+  const menuButton = page.getByRole("button", { name: "Menu" });
+  await expect(menuButton).toHaveAttribute("aria-expanded", "false");
+  await menuButton.click();
+  await expect(menuButton).toHaveAttribute("aria-expanded", "true");
+  await page.getByRole("link", { name: "Cart" }).click();
+
+  await expect(page.getByRole("heading", { name: "Your cart" })).toBeVisible();
+  await expect(page.getByText("Your cart is empty")).toBeVisible();
+  await expect(menuButton).toHaveAttribute("aria-expanded", "false");
 });

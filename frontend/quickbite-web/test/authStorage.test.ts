@@ -12,7 +12,7 @@ describe("authStorage", () => {
   it("maps identity auth responses into frontend sessions", () => {
     const session = toAuthSession(authResponse());
 
-    expect(session.user.email).toBe("demo@quickbite.local");
+    expect(session.user.email).toBe("customer@quickbite.local");
     expect(session.user.roles).toEqual(["Customer"]);
     expect(session.accessToken).toBe("access-token");
   });
@@ -22,7 +22,7 @@ describe("authStorage", () => {
     const session = toAuthSession(authResponse());
 
     saveStoredSession(session, storage);
-    expect(loadStoredSession(storage)?.user.fullName).toBe("Demo Customer");
+    expect(loadStoredSession(storage)?.user.fullName).toBe("QuickBite Customer");
 
     clearStoredSession(storage);
     expect(loadStoredSession(storage)).toBeNull();
@@ -55,8 +55,8 @@ describe("authStorage", () => {
 function authResponse(overrides: Partial<AuthResponse> = {}): AuthResponse {
   return {
     userId: "user-1",
-    email: "demo@quickbite.local",
-    fullName: "Demo Customer",
+    email: "customer@quickbite.local",
+    fullName: "QuickBite Customer",
     roles: ["Customer"],
     accessToken: "access-token",
     accessTokenExpiresAtUtc: "2099-05-02T00:00:00Z",

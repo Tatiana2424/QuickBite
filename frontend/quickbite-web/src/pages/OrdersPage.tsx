@@ -1,66 +1,70 @@
-import { FormEvent, useState } from "react";
-import { ErrorState } from "../components/AsyncState";
-import { ApiError } from "../lib/apiErrors";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
+import { EmptyState, ErrorState, LoadingState } from "../components/AsyncState";
 import type { Order } from "../models";
-import { getOrder } from "../services/quickbiteService";
+import { getMyOrders } from "../services/quickbiteService";
 
 export function OrdersPage() {
-  const [order, setOrder] = useState<Order | null>(null);
-  const [message, setMessage] = useState("Paste an order id after creating one via the Orders API.");
-  const [error, setError] = useState<ApiError | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const ordersQuery = useQuery({
+    queryKey: ["my-orders"],
+    queryFn: () => getMyOrders()
+  });
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const orderId = String(formData.get("orderId") ?? "");
-
-    try {
-      setIsLoading(true);
-      setError(null);
-      const result = await getOrder(orderId);
-      setOrder(result);
-      setMessage("Order loaded successfully.");
-    } catch (apiError) {
-      setOrder(null);
-      setError(apiError instanceof ApiError ? apiError : null);
-      setMessage("Order lookup failed.");
-    } finally {
-      setIsLoading(false);
-    }
+  if (ordersQuery.isLoading) {
+    return <LoadingState label="Loading your orders..." />;
   }
+
+  if (ordersQuery.isError) {
+    return <ErrorState error={ordersQuery.error} action={<button type="button" onClick={() => void ordersQuery.refetch()}>Retry</button>} />;
+  }
+
+  const orders = ordersQuery.data ?? [];
 
   return (
     <section className="stack">
       <div>
         <p className="eyebrow">Orders</p>
-        <h2>Order lookup</h2>
+        <h2>My Orders</h2>
+        <p className="muted">Recent orders from your QuickBite account.</p>
       </div>
-      <form className="stack" onSubmit={handleSubmit}>
-        <label>
-          Order id
-          <input name="orderId" placeholder="Order id" required />
-        </label>
-        <button type="submit" disabled={isLoading}>
-          {isLoading ? "Loading..." : "Load order"}
-        </button>
-      </form>
-      <p className="muted">{message}</p>
-      {error && <ErrorState error={error} />}
-      {order && (
-        <article className="panel">
-          <strong>{order.id}</strong>
-          <p>Status: {order.status}</p>
-          <p>Total: ${order.totalAmount.toFixed(2)}</p>
-          <ul>
-            {order.items.map((item) => (
-              <li key={`${item.menuItemId}-${item.name}`}>
-                {item.quantity} x {item.name} (${item.unitPrice.toFixed(2)})
-              </li>
-            ))}
-          </ul>
-        </article>
+      {orders.length === 0 ? (
+        <EmptyState title="No orders yet">Your completed checkout flow will show recent orders here.</EmptyState>
+      ) : (
+        <div className="grid">
+          {orders.map((order) => (
+            <OrderCard key={order.id} order={order} />
+          ))}
+        </div>
       )}
     </section>
   );
+}
+
+function OrderCard({ order }: { order: Order }) {
+  const itemSummary = summarizeItems(order);
+
+  return (
+    <Link to={`/orders/${order.id}`} className="card order-card" aria-label={`View order ${order.id}`}>
+      <div className="order-card__header">
+        <strong>{order.status}</strong>
+        <span>${order.totalAmount.toFixed(2)}</span>
+      </div>
+      <p>{itemSummary}</p>
+      <small>{formatOrderDate(order.createdAtUtc)}</small>
+    </Link>
+  );
+}
+
+function summarizeItems(order: Order) {
+  const visibleItems = order.items.slice(0, 3).map((item) => `${item.quantity} x ${item.name}`);
+  const remainingCount = order.items.length - visibleItems.length;
+
+  return remainingCount > 0 ? `${visibleItems.join(", ")} + ${remainingCount} more` : visibleItems.join(", ");
+}
+
+function formatOrderDate(value: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(new Date(value));
 }

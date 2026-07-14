@@ -1,4 +1,7 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuickBite.BuildingBlocks.Api;
 using QuickBite.Orders.Application;
@@ -29,11 +32,40 @@ public sealed class OrdersController(IOrderService orderService) : ControllerBas
         return CreatedAtAction(nameof(GetById), new { id = order.Id }, order);
     }
 
+    [Authorize]
+    [HttpGet]
+    public async Task<ActionResult<IReadOnlyCollection<OrderDto>>> ListForCurrentUser(
+        [FromQuery] int limit,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetCurrentUserId(out var userId))
+        {
+            return this.UnauthorizedProblem("The current access token does not include a user id.");
+        }
+
+        var orders = await orderService.ListForUserAsync(userId, limit <= 0 ? 20 : limit, cancellationToken);
+        return Ok(orders);
+    }
+
+    [Authorize]
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<OrderDto>> GetById(Guid id, CancellationToken cancellationToken)
     {
-        var order = await orderService.GetByIdAsync(id, cancellationToken);
+        if (!TryGetCurrentUserId(out var userId))
+        {
+            return this.UnauthorizedProblem("The current access token does not include a user id.");
+        }
+
+        var order = await orderService.GetForUserByIdAsync(userId, id, cancellationToken);
         return order is null ? this.NotFoundProblem($"Order '{id}' was not found.") : Ok(order);
+    }
+
+    private bool TryGetCurrentUserId(out Guid userId)
+    {
+        var rawUserId = User.FindFirstValue(JwtRegisteredClaimNames.Sub)
+            ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        return Guid.TryParse(rawUserId, out userId);
     }
 }
 

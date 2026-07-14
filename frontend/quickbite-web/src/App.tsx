@@ -2,6 +2,7 @@ import { Link, Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { useAuth } from "./auth/AuthContext";
 import { LoginPage } from "./pages/LoginPage";
+import { OrderDetailsPage } from "./pages/OrderDetailsPage";
 import { OrdersPage } from "./pages/OrdersPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { RestaurantDetailsPage } from "./pages/RestaurantDetailsPage";
@@ -46,6 +47,14 @@ export function App() {
             element={
               <ProtectedRoute>
                 <OrdersPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/orders/:orderId"
+            element={
+              <ProtectedRoute>
+                <OrderDetailsPage />
               </ProtectedRoute>
             }
           />

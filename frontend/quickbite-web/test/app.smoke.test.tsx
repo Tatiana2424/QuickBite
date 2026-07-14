@@ -27,8 +27,26 @@ vi.mock("../src/services/quickbiteService", () => ({
     userId: "user-1",
     status: "Created",
     totalAmount: 12.5,
+    createdAtUtc: "2026-07-14T12:00:00Z",
     items: []
   }),
+  getMyOrders: vi.fn().mockResolvedValue([
+    {
+      id: "order-1",
+      userId: "user-1",
+      status: "Created",
+      totalAmount: 12.5,
+      createdAtUtc: "2026-07-14T12:00:00Z",
+      items: [
+        {
+          menuItemId: "menu-item-1",
+          name: "Harvest Bowl",
+          quantity: 2,
+          unitPrice: 6.25
+        }
+      ]
+    }
+  ]),
   login: vi.fn().mockResolvedValue({
     userId: "user-1",
     email: "customer@quickbite.local",
@@ -74,7 +92,8 @@ describe("QuickBite app shell", () => {
 
     await user.click(screen.getByRole("link", { name: "Orders" }));
 
-    expect(await screen.findByRole("heading", { name: "Order lookup" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "My Orders" })).toBeTruthy();
+    expect(screen.getByText("2 x Harvest Bowl")).toBeTruthy();
   });
 
   it("guards order routes until the user signs in", async () => {
@@ -101,7 +120,7 @@ describe("QuickBite app shell", () => {
     await user.type(screen.getByLabelText("Password"), "Pass123!");
     await user.click(screen.getByRole("button", { name: "Create account" }));
 
-    expect(await screen.findByRole("heading", { name: "Order lookup" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "My Orders" })).toBeTruthy();
     expect(screen.getByText("New Customer")).toBeTruthy();
   });
 

@@ -1,0 +1,7 @@
+QuickBite {{ .Values.global.environment }} deployment package rendered.
+
+Next operator steps:
+1. Confirm the namespace exists: {{ .Values.namespace.name }}
+2. Ensure the runtime secret exists: {{ include "quickbite.secretName" . }}
+3. Apply migration bundles before rolling API images.
+4. Point DNS for {{ .Values.ingress.host }} to the ingress controller.

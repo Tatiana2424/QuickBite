@@ -1,0 +1,141 @@
+{{- range $key, $component := .Values.components }}
+{{- if $component.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "quickbite.componentName" (dict "root" $ "component" $component) }}
+  namespace: {{ $.Values.namespace.name }}
+  labels:
+    {{- include "quickbite.componentLabels" (dict "root" $ "component" $component) | nindent 4 }}
+spec:
+  {{- if not $component.autoscaling.enabled }}
+  replicas: {{ $component.replicas }}
+  {{- end }}
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      {{- include "quickbite.selectorLabels" (dict "root" $ "component" $component) | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        {{- include "quickbite.selectorLabels" (dict "root" $ "component" $component) | nindent 8 }}
+        quickbite.io/environment: {{ $.Values.global.environment | quote }}
+      annotations:
+        prometheus.io/scrape: {{ ternary "true" "false" (ne $component.kind "web") | quote }}
+        prometheus.io/path: /metrics
+        prometheus.io/port: {{ $component.port | quote }}
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: {{ $component.name }}
+          image: "{{ $.Values.global.imageRegistry }}/{{ $component.image.repository }}:{{ $.Values.global.imageTag }}"
+          imagePullPolicy: {{ $.Values.global.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ $component.port }}
+          {{- if eq $component.kind "web" }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          {{- else }}
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            periodSeconds: 10
+            failureThreshold: 18
+          {{- end }}
+          {{- if ne $component.kind "web" }}
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: {{ $.Values.global.environment | quote }}
+            - name: ASPNETCORE_URLS
+              value: "http://+:{{ $component.port }}"
+            {{- if eq $component.kind "api" }}
+            - name: ConnectionStrings__DefaultConnection
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "quickbite.secretName" $ }}
+                  key: {{ printf "%s-connection-string" $key }}
+            - name: DatabaseInitialization__ApplyMigrationsOnStartup
+              value: {{ $.Values.global.databaseInitialization.applyMigrationsOnStartup | quote }}
+            - name: DatabaseInitialization__SeedDemoData
+              value: {{ $.Values.global.databaseInitialization.seedDemoData | quote }}
+            - name: DatabaseInitialization__RecreateDatabaseIfMigrationHistoryMissing
+              value: {{ $.Values.global.databaseInitialization.recreateDatabaseIfMigrationHistoryMissing | quote }}
+            - name: Kafka__Enabled
+              value: {{ $.Values.global.kafka.enabled | quote }}
+            - name: Kafka__BootstrapServers
+              value: {{ $.Values.global.kafka.bootstrapServers | quote }}
+            - name: Kafka__ClientId
+              value: {{ $component.kafkaClientId | quote }}
+            - name: Kafka__Producer
+              value: {{ $component.kafkaProducer | quote }}
+            - name: Kafka__TopicPartitionCount
+              value: {{ $.Values.global.kafka.topicPartitionCount | quote }}
+            - name: Kafka__TopicReplicationFactor
+              value: {{ $.Values.global.kafka.topicReplicationFactor | quote }}
+            {{- if eq $key "identity" }}
+            - name: Jwt__Key
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "quickbite.secretName" $ }}
+                  key: jwt-key
+            - name: Jwt__Issuer
+              value: "QuickBite"
+            - name: Jwt__Audience
+              value: "QuickBite.Web"
+            - name: Jwt__AllowDevelopmentSigningKey
+              value: "false"
+            {{- end }}
+            {{- end }}
+            {{- if eq $component.kind "gateway" }}
+            {{- range $originIndex, $origin := $component.allowedOrigins }}
+            - name: GatewaySecurity__AllowedOrigins__{{ $originIndex }}
+              value: {{ $origin | quote }}
+            {{- end }}
+            - name: ReverseProxy__Clusters__identity-cluster__Destinations__primary__Address
+              value: http://{{ include "quickbite.componentName" (dict "root" $ "component" $.Values.components.identity) }}:8080/
+            - name: ReverseProxy__Clusters__catalog-cluster__Destinations__primary__Address
+              value: http://{{ include "quickbite.componentName" (dict "root" $ "component" $.Values.components.catalog) }}:8080/
+            - name: ReverseProxy__Clusters__orders-cluster__Destinations__primary__Address
+              value: http://{{ include "quickbite.componentName" (dict "root" $ "component" $.Values.components.orders) }}:8080/
+            - name: ReverseProxy__Clusters__payments-cluster__Destinations__primary__Address
+              value: http://{{ include "quickbite.componentName" (dict "root" $ "component" $.Values.components.payments) }}:8080/
+            - name: ReverseProxy__Clusters__delivery-cluster__Destinations__primary__Address
+              value: http://{{ include "quickbite.componentName" (dict "root" $ "component" $.Values.components.delivery) }}:8080/
+            {{- end }}
+          {{- end }}
+          resources:
+            {{- toYaml $component.resources | nindent 12 }}
+{{- end }}
+{{- end }}

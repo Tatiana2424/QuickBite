@@ -176,6 +176,39 @@ label {
   background: rgba(254, 242, 242, 0.95);
 }
 
+.order-card {
+  color: inherit;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.order-card:hover,
+.order-card:focus-visible {
+  border-color: rgba(249, 115, 22, 0.5);
+  transform: translateY(-2px);
+  outline: none;
+}
+
+.order-card__header,
+.order-items li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.order-detail {
+  display: grid;
+  gap: 1rem;
+}
+
+.order-items {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
 .loader {
   width: 1.25rem;
   height: 1.25rem;

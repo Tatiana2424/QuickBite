@@ -16,6 +16,13 @@ export async function getOrder(orderId: string): Promise<Order> {
   return response.data;
 }
 
+export async function getMyOrders(limit = 20): Promise<Order[]> {
+  const response = await apiClient.get<Order[]>("/orders/api/orders", {
+    params: { limit }
+  });
+  return response.data;
+}
+
 export async function login(email: string, password: string): Promise<AuthResponse> {
   const response = await anonymousApiClient.post<AuthResponse>("/identity/api/auth/login", { email, password });
   return response.data;

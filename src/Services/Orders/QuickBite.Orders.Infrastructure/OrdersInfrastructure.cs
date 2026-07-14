@@ -128,11 +128,39 @@ internal sealed class OrderService(
         return order is null ? null : Map(order);
     }
 
+    public async Task<OrderDto?> GetForUserByIdAsync(Guid userId, Guid id, CancellationToken cancellationToken)
+    {
+        var order = await dbContext.Orders
+            .AsNoTracking()
+            .Include(x => x.Items)
+            .FirstOrDefaultAsync(x => x.UserId == userId && x.Id == id, cancellationToken);
+
+        return order is null ? null : Map(order);
+    }
+
+    public async Task<IReadOnlyCollection<OrderDto>> ListForUserAsync(
+        Guid userId,
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        var safeLimit = Math.Clamp(limit, 1, 50);
+        var orders = await dbContext.Orders
+            .AsNoTracking()
+            .Include(x => x.Items)
+            .Where(x => x.UserId == userId)
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .Take(safeLimit)
+            .ToListAsync(cancellationToken);
+
+        return orders.Select(Map).ToList();
+    }
+
     private static OrderDto Map(Order order) => new(
         order.Id,
         order.UserId,
         order.Status.ToString(),
         order.TotalAmount,
+        order.CreatedAtUtc,
         order.Items.Select(x => new OrderItemDto(x.MenuItemId, x.Name, x.Quantity, x.UnitPrice)).ToList());
 }
 

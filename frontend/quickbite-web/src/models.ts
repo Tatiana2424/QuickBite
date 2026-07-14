@@ -29,6 +29,7 @@ export interface Order {
   userId: string;
   status: string;
   totalAmount: number;
+  createdAtUtc: string;
   items: OrderItem[];
 }
 

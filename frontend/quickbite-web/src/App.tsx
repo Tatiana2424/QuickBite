@@ -3,6 +3,7 @@ import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { useAuth } from "./auth/AuthContext";
 import { LoginPage } from "./pages/LoginPage";
 import { OrdersPage } from "./pages/OrdersPage";
+import { RegisterPage } from "./pages/RegisterPage";
 import { RestaurantDetailsPage } from "./pages/RestaurantDetailsPage";
 import { RestaurantsPage } from "./pages/RestaurantsPage";
 
@@ -22,6 +23,7 @@ export function App() {
             <Link to="/">Restaurants</Link>
             <Link to="/orders">Orders</Link>
             {!isAuthenticated && <Link to="/login">Login</Link>}
+            {!isAuthenticated && <Link to="/register">Create account</Link>}
           </nav>
           {isAuthenticated && user && (
             <section className="session-card" aria-label="Signed in user">
@@ -48,6 +50,7 @@ export function App() {
             }
           />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
         </Routes>
       </main>
     </div>

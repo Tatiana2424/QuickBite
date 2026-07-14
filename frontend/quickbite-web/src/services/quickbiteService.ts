@@ -21,6 +21,15 @@ export async function login(email: string, password: string): Promise<AuthRespon
   return response.data;
 }
 
+export async function register(email: string, fullName: string, password: string): Promise<AuthResponse> {
+  const response = await anonymousApiClient.post<AuthResponse>("/identity/api/auth/register", {
+    email,
+    fullName,
+    password
+  });
+  return response.data;
+}
+
 export async function refreshSession(refreshToken: string): Promise<AuthResponse> {
   const response = await anonymousApiClient.post<AuthResponse>("/identity/api/auth/refresh", { refreshToken });
   return response.data;

@@ -2,7 +2,12 @@ import { createContext, ReactNode, useContext, useEffect, useRef, useState } fro
 import { configureApiAuth } from "../lib/api";
 import { ApiError, toApiError } from "../lib/apiErrors";
 import type { AuthSession, AuthUser } from "../models";
-import { login as loginRequest, logout as logoutRequest, refreshSession as refreshSessionRequest } from "../services/quickbiteService";
+import {
+  login as loginRequest,
+  logout as logoutRequest,
+  refreshSession as refreshSessionRequest,
+  register as registerRequest
+} from "../services/quickbiteService";
 import {
   clearStoredSession,
   isRefreshTokenExpired,
@@ -18,6 +23,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   authError: ApiError | null;
   login: (email: string, password: string) => Promise<void>;
+  register: (email: string, fullName: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -45,6 +51,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const response = await loginRequest(email, password);
+      persistSession(toAuthSession(response));
+    } catch (error) {
+      const apiError = toApiError(error);
+      setAuthError(apiError);
+      throw apiError;
+    }
+  }
+
+  async function register(email: string, fullName: string, password: string) {
+    setAuthError(null);
+
+    try {
+      const response = await registerRequest(email, fullName, password);
       persistSession(toAuthSession(response));
     } catch (error) {
       const apiError = toApiError(error);
@@ -119,6 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: Boolean(session),
         authError,
         login,
+        register,
         logout
       }}
     >

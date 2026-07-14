@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -14,6 +14,18 @@ vi.mock("../src/services/quickbiteService", () => ({
       name: "Urban Bowl",
       cuisine: "Healthy",
       description: "Balanced bowls and fresh wraps."
+    },
+    {
+      id: "restaurant-2",
+      name: "Pizza Port",
+      cuisine: "Italian",
+      description: "Stone baked pizzas and sides."
+    },
+    {
+      id: "restaurant-3",
+      name: "Taco Lane",
+      cuisine: "Mexican",
+      description: "Street tacos, bowls, and bright salsas."
     }
   ]),
   getRestaurantDetails: vi.fn().mockResolvedValue({
@@ -114,7 +126,28 @@ describe("QuickBite app shell", () => {
 
     expect(screen.getByRole("link", { name: "Restaurants" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "My orders" })).toBeTruthy();
-    expect(await screen.findByText("Urban Bowl")).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Find the right meal, then checkout fast." })).toBeTruthy();
+    expect((await screen.findAllByText("Urban Bowl")).length).toBeGreaterThan(0);
+  });
+
+  it("filters restaurants by search text and cuisine chips", async () => {
+    const user = userEvent.setup();
+    renderApp("/");
+
+    const discovery = await screen.findByRole("region", { name: "All restaurants" });
+    expect(within(discovery).getByRole("link", { name: /Urban Bowl/ })).toBeTruthy();
+    expect(within(discovery).getByRole("link", { name: /Pizza Port/ })).toBeTruthy();
+
+    await user.type(within(discovery).getByLabelText("Search restaurants"), "pizza");
+
+    expect(within(discovery).getByRole("link", { name: /Pizza Port/ })).toBeTruthy();
+    expect(within(discovery).queryByRole("link", { name: /Urban Bowl/ })).toBeNull();
+
+    await user.clear(within(discovery).getByLabelText("Search restaurants"));
+    await user.click(within(discovery).getByRole("button", { name: "Healthy" }));
+
+    expect(within(discovery).getByRole("link", { name: /Urban Bowl/ })).toBeTruthy();
+    expect(within(discovery).queryByRole("link", { name: /Pizza Port/ })).toBeNull();
   });
 
   it("lets users navigate to the orders page without a page reload", async () => {

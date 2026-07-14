@@ -86,6 +86,54 @@ vi.mock("../src/services/quickbiteService", () => ({
     courierPhoneNumber: "+1-555-0102",
     address: testAddress
   }),
+  getMyCourierDeliveries: vi.fn().mockResolvedValue([
+    {
+      id: "delivery-1",
+      orderId: "order-1",
+      status: "Assigned",
+      courierId: "courier-1",
+      courierName: "Alex Rider",
+      courierPhoneNumber: "+1-555-0101",
+      address: testAddress
+    }
+  ]),
+  updateCourierDeliveryStatus: vi.fn().mockResolvedValue({
+    id: "delivery-1",
+    orderId: "order-1",
+    status: "Accepted",
+    courierId: "courier-1",
+    courierName: "Alex Rider",
+    courierPhoneNumber: "+1-555-0101",
+    address: testAddress
+  }),
+  createRestaurant: vi.fn().mockResolvedValue({
+    id: "restaurant-4",
+    name: "Noodle House",
+    cuisine: "Asian",
+    description: "Fresh noodles and broths.",
+    menuItems: []
+  }),
+  updateRestaurant: vi.fn().mockResolvedValue({
+    id: "restaurant-1",
+    name: "Urban Bowl",
+    cuisine: "Healthy",
+    description: "Balanced bowls and fresh wraps.",
+    menuItems: []
+  }),
+  createMenuItem: vi.fn().mockResolvedValue({
+    id: "menu-item-2",
+    restaurantId: "restaurant-1",
+    name: "Citrus Salad",
+    description: "Greens and bright dressing.",
+    price: 8.5
+  }),
+  updateMenuItem: vi.fn().mockResolvedValue({
+    id: "menu-item-1",
+    restaurantId: "restaurant-1",
+    name: "Harvest Bowl",
+    description: "Grains, greens, and citrus dressing.",
+    price: 6.25
+  }),
   getMyOrders: vi.fn().mockResolvedValue([
     {
       id: "order-1",
@@ -191,6 +239,24 @@ describe("QuickBite app shell", () => {
     expect(screen.getByText("Customer")).toBeTruthy();
   });
 
+  it("shows restaurant admin tools for restaurant admins", async () => {
+    seedSession(["RestaurantAdmin"]);
+    renderApp("/admin/restaurants");
+
+    expect(await screen.findByRole("heading", { name: "Manage restaurants and menus" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /Urban Bowl/ })).toBeTruthy();
+    expect(await screen.findByLabelText("Menu manager")).toBeTruthy();
+  });
+
+  it("shows assigned deliveries for couriers", async () => {
+    seedSession(["Courier"], "Alex Rider", "courier@quickbite.local");
+    renderApp("/courier/deliveries");
+
+    expect(await screen.findByRole("heading", { name: "Assigned deliveries" })).toBeTruthy();
+    expect(await screen.findByText("123 Market Street")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Accept" })).toBeTruthy();
+  });
+
   it("guards the account page until the user signs in", async () => {
     renderApp("/account");
 
@@ -290,15 +356,15 @@ function renderApp(initialRoute: string) {
 }
 
 
-function seedSession() {
+function seedSession(roles = ["Customer"], fullName = "QuickBite Customer", email = "customer@quickbite.local") {
   localStorage.setItem(
     "quickbite.auth.session",
     JSON.stringify({
       user: {
         id: "user-1",
-        email: "customer@quickbite.local",
-        fullName: "QuickBite Customer",
-        roles: ["Customer"]
+        email,
+        fullName,
+        roles
       },
       accessToken: "token",
       accessTokenExpiresAtUtc: "2099-05-02T00:00:00Z",

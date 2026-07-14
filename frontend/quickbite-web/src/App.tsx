@@ -3,10 +3,12 @@ import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { useAuth } from "./auth/AuthContext";
 import { CartProvider, useCart } from "./cart/CartContext";
 import { AccountPage } from "./pages/AccountPage";
+import { CourierDeliveriesPage } from "./pages/CourierDeliveriesPage";
 import { LoginPage } from "./pages/LoginPage";
 import { OrderDetailsPage } from "./pages/OrderDetailsPage";
 import { OrdersPage } from "./pages/OrdersPage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { RestaurantAdminPage } from "./pages/RestaurantAdminPage";
 import { RestaurantDetailsPage } from "./pages/RestaurantDetailsPage";
 import { RestaurantsPage } from "./pages/RestaurantsPage";
 
@@ -21,6 +23,8 @@ export function App() {
 function AppShell() {
   const { isAuthenticated, user, logout } = useAuth();
   const { itemCount } = useCart();
+  const canManageRestaurants = user?.roles.some((role) => role === "RestaurantAdmin" || role === "PlatformAdmin");
+  const canDeliver = user?.roles.some((role) => role === "Courier" || role === "PlatformAdmin");
 
   return (
     <div className="app-shell">
@@ -35,6 +39,8 @@ function AppShell() {
         <nav aria-label="Primary navigation">
           <Link to="/">Restaurants</Link>
           <Link to="/orders">My orders</Link>
+          {canManageRestaurants && <Link to="/admin/restaurants">Admin</Link>}
+          {canDeliver && <Link to="/courier/deliveries">Courier</Link>}
           {isAuthenticated && <Link to="/account">Account</Link>}
           {itemCount > 0 && <span className="cart-badge" aria-label={`${itemCount} items in cart`}>{itemCount}</span>}
         </nav>
@@ -76,6 +82,22 @@ function AppShell() {
             element={
               <ProtectedRoute>
                 <AccountPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/restaurants"
+            element={
+              <ProtectedRoute>
+                <RestaurantAdminPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/courier/deliveries"
+            element={
+              <ProtectedRoute>
+                <CourierDeliveriesPage />
               </ProtectedRoute>
             }
           />

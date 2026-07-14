@@ -117,6 +117,63 @@ internal sealed class CatalogService(CatalogDbContext dbContext) : ICatalogServi
             .Select(x => new MenuItemDto(x.Id, x.RestaurantId, x.Name, x.Description, x.Price))
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<RestaurantDetailsDto> CreateRestaurantAsync(RestaurantMutationRequest request, CancellationToken cancellationToken)
+    {
+        var restaurant = new Restaurant(request.Name, request.Cuisine, request.Description);
+        dbContext.Restaurants.Add(restaurant);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new RestaurantDetailsDto(restaurant.Id, restaurant.Name, restaurant.Cuisine, restaurant.Description, []);
+    }
+
+    public async Task<RestaurantDetailsDto?> UpdateRestaurantAsync(Guid id, RestaurantMutationRequest request, CancellationToken cancellationToken)
+    {
+        var restaurant = await dbContext.Restaurants.Include(x => x.MenuItems).FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (restaurant is null)
+        {
+            return null;
+        }
+
+        restaurant.Update(request.Name, request.Cuisine, request.Description);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new RestaurantDetailsDto(
+            restaurant.Id,
+            restaurant.Name,
+            restaurant.Cuisine,
+            restaurant.Description,
+            restaurant.MenuItems.OrderBy(x => x.Name).Select(MapMenuItem).ToList());
+    }
+
+    public async Task<MenuItemDto?> CreateMenuItemAsync(Guid restaurantId, MenuItemMutationRequest request, CancellationToken cancellationToken)
+    {
+        if (!await dbContext.Restaurants.AnyAsync(x => x.Id == restaurantId, cancellationToken))
+        {
+            return null;
+        }
+
+        var menuItem = new MenuItem(restaurantId, request.Name, request.Description, request.Price);
+        dbContext.MenuItems.Add(menuItem);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return MapMenuItem(menuItem);
+    }
+
+    public async Task<MenuItemDto?> UpdateMenuItemAsync(Guid restaurantId, Guid menuItemId, MenuItemMutationRequest request, CancellationToken cancellationToken)
+    {
+        var menuItem = await dbContext.MenuItems.FirstOrDefaultAsync(
+            x => x.RestaurantId == restaurantId && x.Id == menuItemId,
+            cancellationToken);
+
+        if (menuItem is null)
+        {
+            return null;
+        }
+
+        menuItem.Update(request.Name, request.Description, request.Price);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return MapMenuItem(menuItem);
+    }
+
+    private static MenuItemDto MapMenuItem(MenuItem item) => new(item.Id, item.RestaurantId, item.Name, item.Description, item.Price);
 }
 
 public sealed class CatalogDbContextFactory : IDesignTimeDbContextFactory<CatalogDbContext>

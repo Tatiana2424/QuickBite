@@ -159,22 +159,33 @@ public static class IdentityInfrastructureServiceCollectionExtensions
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        if (!options.SeedDemoData || await dbContext.Users.AnyAsync(cancellationToken))
+        if (!options.SeedDemoData)
         {
             return;
         }
 
         var customerRole = await dbContext.Roles.SingleAsync(x => x.Name == IdentityRoles.Customer, cancellationToken);
-        var adminRole = await dbContext.Roles.SingleAsync(x => x.Name == IdentityRoles.PlatformAdmin, cancellationToken);
+        var restaurantAdminRole = await dbContext.Roles.SingleAsync(x => x.Name == IdentityRoles.RestaurantAdmin, cancellationToken);
+        var courierRole = await dbContext.Roles.SingleAsync(x => x.Name == IdentityRoles.Courier, cancellationToken);
+        var platformAdminRole = await dbContext.Roles.SingleAsync(x => x.Name == IdentityRoles.PlatformAdmin, cancellationToken);
 
-        var demoCustomer = new User("customer@quickbite.local", "QuickBite Customer", PasswordHasher.Hash("Pass123!"));
-        demoCustomer.AssignRole(customerRole);
-
-        var demoAdmin = new User("admin@quickbite.local", "QuickBite Admin", PasswordHasher.Hash("Pass123!"));
-        demoAdmin.AssignRole(adminRole);
-
-        dbContext.Users.AddRange(demoCustomer, demoAdmin);
+        AddDemoUser(dbContext, "customer@quickbite.local", "QuickBite Customer", customerRole);
+        AddDemoUser(dbContext, "restaurant@quickbite.local", "Restaurant Manager", restaurantAdminRole);
+        AddDemoUser(dbContext, "courier@quickbite.local", "Alex Rider", courierRole);
+        AddDemoUser(dbContext, "admin@quickbite.local", "QuickBite Admin", platformAdminRole);
         await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private static void AddDemoUser(IdentityDbContext dbContext, string email, string fullName, Role role)
+    {
+        if (dbContext.Users.Local.Any(x => x.Email == email) || dbContext.Users.Any(x => x.Email == email))
+        {
+            return;
+        }
+
+        var user = new User(email, fullName, PasswordHasher.Hash("Pass123!"));
+        user.AssignRole(role);
+        dbContext.Users.Add(user);
     }
 }
 

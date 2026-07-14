@@ -40,11 +40,11 @@ export function LoginPage() {
     <section className="panel">
       <p className="eyebrow">Identity</p>
       <h2>Sign in to QuickBite</h2>
-      <p className="muted">Use the seeded demo account or any user registered through the Identity API.</p>
+      <p className="muted">Use the seeded customer account or any user registered through the Identity API.</p>
       <form className="stack" onSubmit={handleSubmit}>
         <label>
           Email
-          <input name="email" type="email" autoComplete="email" defaultValue="demo@quickbite.local" required />
+          <input name="email" type="email" autoComplete="email" defaultValue="customer@quickbite.local" required />
         </label>
         <label>
           Password
@@ -54,7 +54,15 @@ export function LoginPage() {
           {isSubmitting ? "Signing in..." : "Sign in"}
         </button>
       </form>
-      {submitError && <ErrorState error={submitError} />}
+      {submitError && (
+        <ErrorState
+          error={
+            submitError.kind === "unauthorized"
+              ? new ApiError("Invalid email or password.", "unauthorized", submitError.status, submitError.traceId)
+              : submitError
+          }
+        />
+      )}
     </section>
   );
 }

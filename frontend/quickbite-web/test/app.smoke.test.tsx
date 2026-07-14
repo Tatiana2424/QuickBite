@@ -31,8 +31,8 @@ vi.mock("../src/services/quickbiteService", () => ({
   }),
   login: vi.fn().mockResolvedValue({
     userId: "user-1",
-    email: "demo@quickbite.local",
-    fullName: "Demo Customer",
+    email: "customer@quickbite.local",
+    fullName: "QuickBite Customer",
     roles: ["Customer"],
     accessToken: "token",
     refreshToken: "refresh",
@@ -72,6 +72,12 @@ describe("QuickBite app shell", () => {
 
     expect(await screen.findByRole("heading", { name: "Sign in to QuickBite" })).toBeTruthy();
   });
+
+  it("prefills the login form with the seeded customer account", async () => {
+    renderApp("/login");
+
+    expect(await screen.findByDisplayValue("customer@quickbite.local")).toBeTruthy();
+  });
 });
 
 function renderApp(initialRoute: string) {
@@ -100,8 +106,8 @@ function seedSession() {
     JSON.stringify({
       user: {
         id: "user-1",
-        email: "demo@quickbite.local",
-        fullName: "Demo Customer",
+        email: "customer@quickbite.local",
+        fullName: "QuickBite Customer",
         roles: ["Customer"]
       },
       accessToken: "token",

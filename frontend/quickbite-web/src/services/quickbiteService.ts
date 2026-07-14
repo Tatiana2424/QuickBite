@@ -1,5 +1,6 @@
 import { anonymousApiClient, apiClient } from "../lib/api";
-import type { AuthResponse, CreateOrderRequest, Order, RestaurantDetails, RestaurantSummary } from "../models";
+import { ApiError } from "../lib/apiErrors";
+import type { AuthResponse, CreateOrderRequest, Delivery, Order, Payment, RestaurantDetails, RestaurantSummary } from "../models";
 
 export async function getRestaurants(): Promise<RestaurantSummary[]> {
   const response = await apiClient.get<RestaurantSummary[]>("/catalog/api/restaurants");
@@ -14,6 +15,32 @@ export async function getRestaurantDetails(restaurantId: string): Promise<Restau
 export async function getOrder(orderId: string): Promise<Order> {
   const response = await apiClient.get<Order>(`/orders/api/orders/${orderId}`);
   return response.data;
+}
+
+export async function getPaymentForOrder(orderId: string): Promise<Payment | null> {
+  try {
+    const response = await apiClient.get<Payment>(`/payments/api/payments/${orderId}`);
+    return response.data;
+  } catch (error) {
+    if (error instanceof ApiError && error.kind === "notFound") {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
+export async function getDeliveryForOrder(orderId: string): Promise<Delivery | null> {
+  try {
+    const response = await apiClient.get<Delivery>(`/delivery/api/deliveries/${orderId}`);
+    return response.data;
+  } catch (error) {
+    if (error instanceof ApiError && error.kind === "notFound") {
+      return null;
+    }
+
+    throw error;
+  }
 }
 
 export async function getMyOrders(limit = 20): Promise<Order[]> {

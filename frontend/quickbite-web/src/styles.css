@@ -209,6 +209,31 @@ label {
   gap: 1rem;
 }
 
+.lifecycle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.lifecycle-card {
+  display: grid;
+  gap: 0.85rem;
+  align-content: start;
+}
+
+.lifecycle-card p {
+  margin: 0;
+}
+
+.status-pill {
+  border-radius: 999px;
+  padding: 0.25rem 0.65rem;
+  background: rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
 .order-items {
   display: grid;
   gap: 0.75rem;

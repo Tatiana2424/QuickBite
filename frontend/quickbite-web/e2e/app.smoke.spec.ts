@@ -115,6 +115,28 @@ test.beforeEach(async ({ page }) => {
       }
     });
   });
+
+  await page.route("**/payments/api/payments/order-1", async (route) => {
+    await route.fulfill({
+      json: {
+        id: "payment-1",
+        orderId: "order-1",
+        amount: 12.5,
+        status: "Succeeded",
+        failureReason: null
+      }
+    });
+  });
+
+  await page.route("**/delivery/api/deliveries/order-1", async (route) => {
+    await route.fulfill({
+      status: 404,
+      json: {
+        title: "Resource not found.",
+        detail: "Delivery for order 'order-1' was not found."
+      }
+    });
+  });
 });
 
 test("loads restaurants through the gateway contract", async ({ page }) => {
@@ -147,4 +169,6 @@ test("lets signed-in customers add menu items and checkout", async ({ page }) =>
   await page.getByRole("button", { name: "Checkout" }).click();
 
   await expect(page.getByRole("heading", { name: "Order order-1" })).toBeVisible();
+  await expect(page.getByText("Succeeded")).toBeVisible();
+  await expect(page.getByText("Delivery will be assigned after payment confirmation.")).toBeVisible();
 });

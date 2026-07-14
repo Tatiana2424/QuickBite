@@ -1,6 +1,7 @@
 import { Link, Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { useAuth } from "./auth/AuthContext";
+import { CartProvider } from "./cart/CartContext";
 import { LoginPage } from "./pages/LoginPage";
 import { OrderDetailsPage } from "./pages/OrderDetailsPage";
 import { OrdersPage } from "./pages/OrdersPage";
@@ -9,6 +10,14 @@ import { RestaurantDetailsPage } from "./pages/RestaurantDetailsPage";
 import { RestaurantsPage } from "./pages/RestaurantsPage";
 
 export function App() {
+  return (
+    <CartProvider>
+      <AppShell />
+    </CartProvider>
+  );
+}
+
+function AppShell() {
   const { isAuthenticated, user, logout } = useAuth();
 
   return (

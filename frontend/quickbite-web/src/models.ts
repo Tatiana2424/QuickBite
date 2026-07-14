@@ -24,6 +24,19 @@ export interface OrderItem {
   unitPrice: number;
 }
 
+export interface CreateOrderItemRequest {
+  menuItemId: string;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+export interface CreateOrderRequest {
+  userId: string;
+  items: CreateOrderItemRequest[];
+  idempotencyKey?: string;
+}
+
 export interface Order {
   id: string;
   userId: string;

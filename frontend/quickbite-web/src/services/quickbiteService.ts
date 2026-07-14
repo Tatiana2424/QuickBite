@@ -1,5 +1,5 @@
 import { anonymousApiClient, apiClient } from "../lib/api";
-import type { AuthResponse, Order, RestaurantDetails, RestaurantSummary } from "../models";
+import type { AuthResponse, CreateOrderRequest, Order, RestaurantDetails, RestaurantSummary } from "../models";
 
 export async function getRestaurants(): Promise<RestaurantSummary[]> {
   const response = await apiClient.get<RestaurantSummary[]>("/catalog/api/restaurants");
@@ -19,6 +19,13 @@ export async function getOrder(orderId: string): Promise<Order> {
 export async function getMyOrders(limit = 20): Promise<Order[]> {
   const response = await apiClient.get<Order[]>("/orders/api/orders", {
     params: { limit }
+  });
+  return response.data;
+}
+
+export async function createOrder(request: CreateOrderRequest): Promise<Order> {
+  const response = await apiClient.post<Order>("/orders/api/orders", request, {
+    headers: request.idempotencyKey ? { "Idempotency-Key": request.idempotencyKey } : undefined
   });
   return response.data;
 }

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { EmptyState, ErrorState, LoadingState } from "../components/AsyncState";
-import type { Order } from "../models";
+import type { OrderSummary } from "../models";
 import { getMyOrders } from "../services/quickbiteService";
 
 export function OrdersPage() {
@@ -40,26 +40,18 @@ export function OrdersPage() {
   );
 }
 
-function OrderCard({ order }: { order: Order }) {
-  const itemSummary = summarizeItems(order);
-
+function OrderCard({ order }: { order: OrderSummary }) {
   return (
     <Link to={`/orders/${order.id}`} className="card order-card" aria-label={`View order ${order.id}`}>
       <div className="order-card__header">
         <strong>{order.status}</strong>
         <span>${order.totalAmount.toFixed(2)}</span>
       </div>
-      <p>{itemSummary}</p>
+      <p>{order.itemSummary}</p>
+      <p className="muted">{order.itemCount} item{order.itemCount === 1 ? "" : "s"}</p>
       <small>{formatOrderDate(order.createdAtUtc)}</small>
     </Link>
   );
-}
-
-function summarizeItems(order: Order) {
-  const visibleItems = order.items.slice(0, 3).map((item) => `${item.quantity} x ${item.name}`);
-  const remainingCount = order.items.length - visibleItems.length;
-
-  return remainingCount > 0 ? `${visibleItems.join(", ")} + ${remainingCount} more` : visibleItems.join(", ");
 }
 
 function formatOrderDate(value: string) {

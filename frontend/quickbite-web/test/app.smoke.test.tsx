@@ -57,18 +57,11 @@ vi.mock("../src/services/quickbiteService", () => ({
   getMyOrders: vi.fn().mockResolvedValue([
     {
       id: "order-1",
-      userId: "user-1",
       status: "Created",
       totalAmount: 12.5,
       createdAtUtc: "2026-07-14T12:00:00Z",
-      items: [
-        {
-          menuItemId: "menu-item-1",
-          name: "Harvest Bowl",
-          quantity: 2,
-          unitPrice: 6.25
-        }
-      ]
+      itemCount: 2,
+      itemSummary: "2 x Harvest Bowl"
     }
   ]),
   createOrder: vi.fn().mockResolvedValue({

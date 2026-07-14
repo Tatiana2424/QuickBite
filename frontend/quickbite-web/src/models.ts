@@ -46,6 +46,20 @@ export interface Order {
   items: OrderItem[];
 }
 
+export interface OrderSummary {
+  id: string;
+  status: string;
+  totalAmount: number;
+  createdAtUtc: string;
+  itemCount: number;
+  itemSummary: string;
+}
+
+export interface OrderSummaryPage {
+  items: OrderSummary[];
+  nextCursor?: string | null;
+}
+
 export interface Payment {
   id: string;
   orderId: string;

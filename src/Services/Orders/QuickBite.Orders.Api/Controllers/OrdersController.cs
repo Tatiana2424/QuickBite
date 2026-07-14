@@ -48,6 +48,35 @@ public sealed class OrdersController(IOrderService orderService) : ControllerBas
     }
 
     [Authorize]
+    [HttpGet("my")]
+    public async Task<ActionResult<OrderSummaryPageDto>> ListMyOrders(
+        [FromQuery] int limit,
+        [FromQuery] string? cursor,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetCurrentUserId(out var userId))
+        {
+            return this.UnauthorizedProblem("The current access token does not include a user id.");
+        }
+
+        var orders = await orderService.ListSummariesForUserAsync(userId, limit <= 0 ? 20 : limit, cursor, cancellationToken);
+        return Ok(orders);
+    }
+
+    [Authorize]
+    [HttpGet("my/{id:guid}")]
+    public async Task<ActionResult<OrderDetailsDto>> GetMyOrderById(Guid id, CancellationToken cancellationToken)
+    {
+        if (!TryGetCurrentUserId(out var userId))
+        {
+            return this.UnauthorizedProblem("The current access token does not include a user id.");
+        }
+
+        var order = await orderService.GetDetailsForUserByIdAsync(userId, id, cancellationToken);
+        return order is null ? this.NotFoundProblem($"Order '{id}' was not found.") : Ok(order);
+    }
+
+    [Authorize]
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<OrderDto>> GetById(Guid id, CancellationToken cancellationToken)
     {

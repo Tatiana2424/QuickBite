@@ -39,9 +39,9 @@ export function RegisterPage() {
 
   return (
     <section className="panel">
-      <p className="eyebrow">Identity</p>
+      <p className="eyebrow">New here?</p>
       <h2>Create your QuickBite account</h2>
-      <p className="muted">Create a customer account to place orders and track delivery progress.</p>
+      <p className="muted">Save your session, place orders, and track payment and delivery updates.</p>
       <form className="stack" onSubmit={handleSubmit}>
         <label>
           Full name

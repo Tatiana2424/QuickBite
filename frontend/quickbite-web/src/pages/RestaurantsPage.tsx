@@ -11,9 +11,10 @@ export function RestaurantsPage() {
 
   return (
     <section className="stack">
-      <div>
-        <p className="eyebrow">Catalog</p>
-        <h2>Restaurants</h2>
+      <div className="page-heading">
+        <p className="eyebrow">Restaurants near you</p>
+        <h2>Choose dinner in a few taps</h2>
+        <p className="muted">Browse local favorites, add what looks good, and track every order from checkout to delivery.</p>
       </div>
       {restaurantsQuery.isLoading && <LoadingState label="Loading restaurants..." />}
       {restaurantsQuery.isError && <ErrorState error={restaurantsQuery.error} action={<button type="button" onClick={() => void restaurantsQuery.refetch()}>Retry</button>} />}
@@ -22,9 +23,9 @@ export function RestaurantsPage() {
       )}
       <div className="grid">
         {restaurantsQuery.data?.map((restaurant) => (
-          <Link key={restaurant.id} to={`/restaurants/${restaurant.id}`} className="card">
+          <Link key={restaurant.id} to={`/restaurants/${restaurant.id}`} className="card restaurant-card">
+            <span className="cuisine-chip">{restaurant.cuisine}</span>
             <strong>{restaurant.name}</strong>
-            <span>{restaurant.cuisine}</span>
             <p>{restaurant.description}</p>
           </Link>
         ))}

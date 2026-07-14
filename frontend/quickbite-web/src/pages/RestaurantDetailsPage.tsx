@@ -9,7 +9,7 @@ export function RestaurantDetailsPage() {
   const { restaurantId = "" } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { items, itemCount, totalAmount, addItem, setQuantity, removeItem, clearCart } = useCart();
   const restaurantQuery = useQuery({
     queryKey: ["restaurant-details", restaurantId],
@@ -18,12 +18,11 @@ export function RestaurantDetailsPage() {
   });
   const checkoutMutation = useMutation({
     mutationFn: () => {
-      if (!user) {
+      if (!isAuthenticated) {
         throw new Error("Sign in before checkout.");
       }
 
       return createOrder({
-        userId: user.id,
         idempotencyKey: createIdempotencyKey(),
         items: items.map((item) => ({
           menuItemId: item.menuItemId,
@@ -76,10 +75,10 @@ export function RestaurantDetailsPage() {
       <aside className="panel cart-summary" aria-label="Cart summary">
         <div>
           <p className="eyebrow">Cart</p>
-          <h3>Your order</h3>
+          <h3>Your bag</h3>
         </div>
         {itemCount === 0 ? (
-          <p className="muted">Add menu items to start an order.</p>
+          <p className="muted">Add something tasty to start your order.</p>
         ) : (
           <>
             <div className="cart-lines">

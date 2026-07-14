@@ -21,6 +21,24 @@ public sealed class ApiSurfaceContractTests
         }
     }
 
+    [Fact]
+    public void Customer_order_creation_is_bound_to_the_authenticated_user()
+    {
+        var source = File.ReadAllText(ControllerPath("Orders", "OrdersController.cs"));
+        var contracts = File.ReadAllText(RepositoryPaths.File(
+            "src",
+            "Services",
+            "Orders",
+            "QuickBite.Orders.Application",
+            "OrderContracts.cs"));
+
+        Assert.Contains("[Authorize]", source, StringComparison.Ordinal);
+        Assert.Contains("[FromBody] CustomerCreateOrderRequest request", source, StringComparison.Ordinal);
+        Assert.Contains("new CreateOrderRequest(userId, request.Items, idempotencyKey)", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("[FromBody] CreateOrderRequest request", source, StringComparison.Ordinal);
+        Assert.Contains("public sealed record CustomerCreateOrderRequest(IReadOnlyCollection<CreateOrderItemRequest> Items", contracts, StringComparison.Ordinal);
+    }
+
     private static string ControllerPath(string serviceName, string controllerFile)
     {
         return RepositoryPaths.File(

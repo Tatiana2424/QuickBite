@@ -32,7 +32,6 @@ export interface CreateOrderItemRequest {
 }
 
 export interface CreateOrderRequest {
-  userId: string;
   items: CreateOrderItemRequest[];
   idempotencyKey?: string;
 }

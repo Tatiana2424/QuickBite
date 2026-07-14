@@ -21,6 +21,16 @@ a {
   text-decoration: none;
 }
 
+.text-link {
+  color: #ea580c;
+  font-weight: 700;
+}
+
+.text-link:hover,
+.text-link:focus-visible {
+  text-decoration: underline;
+}
+
 button,
 input {
   font: inherit;

@@ -1,5 +1,14 @@
 import { expect, test } from "@playwright/test";
 
+const testAddress = {
+  line1: "123 Market Street",
+  line2: null,
+  city: "Seattle",
+  state: "WA",
+  postalCode: "98101",
+  country: "USA"
+};
+
 test.beforeEach(async ({ page }) => {
   await page.route("**/catalog/api/restaurants", async (route) => {
     await route.fulfill({
@@ -87,6 +96,7 @@ test.beforeEach(async ({ page }) => {
 
     const requestBody = route.request().postDataJSON() as Record<string, unknown>;
     expect(requestBody.userId).toBeUndefined();
+    expect(requestBody.deliveryAddress).toEqual(testAddress);
 
     await route.fulfill({
       json: {
@@ -95,6 +105,7 @@ test.beforeEach(async ({ page }) => {
         status: "PaymentProcessing",
         totalAmount: 12.5,
         createdAtUtc: "2026-07-14T12:00:00Z",
+        deliveryAddress: testAddress,
         items: [
           {
             menuItemId: "menu-item-1",
@@ -115,6 +126,7 @@ test.beforeEach(async ({ page }) => {
         status: "PaymentProcessing",
         totalAmount: 12.5,
         createdAtUtc: "2026-07-14T12:00:00Z",
+        deliveryAddress: testAddress,
         items: [
           {
             menuItemId: "menu-item-1",
@@ -141,10 +153,14 @@ test.beforeEach(async ({ page }) => {
 
   await page.route("**/delivery/api/deliveries/order-1", async (route) => {
     await route.fulfill({
-      status: 404,
       json: {
-        title: "Resource not found.",
-        detail: "Delivery for order 'order-1' was not found."
+        id: "delivery-1",
+        orderId: "order-1",
+        status: "Assigned",
+        courierId: "courier-1",
+        courierName: "Mia Brooks",
+        courierPhoneNumber: "+1-555-0102",
+        address: testAddress
       }
     });
   });
@@ -187,6 +203,17 @@ test("guards orders and returns after login", async ({ page }) => {
   await expect(page.getByLabel("Signed in user")).toContainText("Demo Customer");
 });
 
+test("shows account information for signed-in customers", async ({ page }) => {
+  await page.goto("/login");
+  await page.getByRole("button", { name: "Sign in" }).click();
+
+  await page.getByRole("link", { name: "Account" }).click();
+
+  await expect(page.getByRole("heading", { name: "Your QuickBite profile" })).toBeVisible();
+  await expect(page.getByLabel("Account information")).toContainText("demo@quickbite.local");
+  await expect(page.getByLabel("Account information")).toContainText("Customer");
+});
+
 test("lets signed-in customers add menu items and checkout", async ({ page }) => {
   await page.goto("/login");
   await page.getByRole("button", { name: "Sign in" }).click();
@@ -200,5 +227,6 @@ test("lets signed-in customers add menu items and checkout", async ({ page }) =>
 
   await expect(page.getByRole("heading", { name: "Order order-1" })).toBeVisible();
   await expect(page.getByText("Succeeded")).toBeVisible();
-  await expect(page.getByText("Delivery will be assigned after payment confirmation.")).toBeVisible();
+  await expect(page.getByText("Mia Brooks")).toBeVisible();
+  await expect(page.getByText("123 Market Street").first()).toBeVisible();
 });

@@ -10,6 +10,12 @@ public sealed class OrderSagaStateTests
         var order = new Order(
             Guid.NewGuid(),
             [new OrderItem(Guid.NewGuid(), "Burger", 1, 12.50m)],
+            "123 Market Street",
+            null,
+            "Seattle",
+            "WA",
+            "98101",
+            "USA",
             "order-key-1");
 
         order.MarkConfirmed();
@@ -22,7 +28,13 @@ public sealed class OrderSagaStateTests
     {
         var order = new Order(
             Guid.NewGuid(),
-            [new OrderItem(Guid.NewGuid(), "Burger", 1, 12.50m)]);
+            [new OrderItem(Guid.NewGuid(), "Burger", 1, 12.50m)],
+            "123 Market Street",
+            null,
+            "Seattle",
+            "WA",
+            "98101",
+            "USA");
 
         order.MarkPaymentFailed();
 

@@ -13,6 +13,12 @@ public sealed class OrderDomainTests
                 new OrderItem(Guid.NewGuid(), "Burger", 2, 12.50m),
                 new OrderItem(Guid.NewGuid(), "Fries", 1, 4.25m)
             ],
+            "123 Market Street",
+            null,
+            "Seattle",
+            "WA",
+            "98101",
+            "USA",
             "checkout-123");
 
         Assert.Equal(OrderStatus.PaymentProcessing, order.Status);

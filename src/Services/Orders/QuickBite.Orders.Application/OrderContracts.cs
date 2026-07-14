@@ -1,8 +1,10 @@
 namespace QuickBite.Orders.Application;
 
 public sealed record CreateOrderItemRequest(Guid MenuItemId, string Name, int Quantity, decimal UnitPrice);
-public sealed record CustomerCreateOrderRequest(IReadOnlyCollection<CreateOrderItemRequest> Items, string? IdempotencyKey = null);
-public sealed record CreateOrderRequest(Guid UserId, IReadOnlyCollection<CreateOrderItemRequest> Items, string? IdempotencyKey = null);
+public sealed record DeliveryAddressRequest(string Line1, string? Line2, string City, string State, string PostalCode, string Country);
+public sealed record DeliveryAddressDto(string Line1, string? Line2, string City, string State, string PostalCode, string Country);
+public sealed record CustomerCreateOrderRequest(IReadOnlyCollection<CreateOrderItemRequest> Items, DeliveryAddressRequest DeliveryAddress, string? IdempotencyKey = null);
+public sealed record CreateOrderRequest(Guid UserId, IReadOnlyCollection<CreateOrderItemRequest> Items, DeliveryAddressRequest DeliveryAddress, string? IdempotencyKey = null);
 public sealed record OrderItemDto(Guid MenuItemId, string Name, int Quantity, decimal UnitPrice);
 public sealed record OrderDto(
     Guid Id,
@@ -10,6 +12,7 @@ public sealed record OrderDto(
     string Status,
     decimal TotalAmount,
     DateTimeOffset CreatedAtUtc,
+    DeliveryAddressDto DeliveryAddress,
     IReadOnlyCollection<OrderItemDto> Items);
 public sealed record OrderSummaryDto(
     Guid Id,
@@ -24,6 +27,7 @@ public sealed record OrderDetailsDto(
     string Status,
     decimal TotalAmount,
     DateTimeOffset CreatedAtUtc,
+    DeliveryAddressDto DeliveryAddress,
     IReadOnlyCollection<OrderItemDto> Items);
 public sealed record OrderSummaryPageDto(IReadOnlyCollection<OrderSummaryDto> Items, string? NextCursor);
 

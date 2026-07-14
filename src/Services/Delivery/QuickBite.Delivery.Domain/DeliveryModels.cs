@@ -51,16 +51,36 @@ public sealed class Delivery : Entity
     public Guid OrderId { get; private set; }
     public Guid CourierId { get; private set; }
     public DeliveryStatus Status { get; private set; } = DeliveryStatus.Assigned;
+    public string AddressLine1 { get; private set; } = string.Empty;
+    public string? AddressLine2 { get; private set; }
+    public string City { get; private set; } = string.Empty;
+    public string State { get; private set; } = string.Empty;
+    public string PostalCode { get; private set; } = string.Empty;
+    public string Country { get; private set; } = string.Empty;
     public Courier? Courier { get; private set; }
 
     private Delivery()
     {
     }
 
-    public Delivery(Guid orderId, Guid courierId)
+    public Delivery(
+        Guid orderId,
+        Guid courierId,
+        string addressLine1,
+        string? addressLine2,
+        string city,
+        string state,
+        string postalCode,
+        string country)
     {
         OrderId = orderId;
         CourierId = courierId;
+        AddressLine1 = addressLine1.Trim();
+        AddressLine2 = string.IsNullOrWhiteSpace(addressLine2) ? null : addressLine2.Trim();
+        City = city.Trim();
+        State = state.Trim();
+        PostalCode = postalCode.Trim();
+        Country = country.Trim();
         Status = DeliveryStatus.Assigned;
     }
 }

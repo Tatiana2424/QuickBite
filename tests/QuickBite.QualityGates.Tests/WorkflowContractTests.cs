@@ -14,11 +14,12 @@ public sealed class WorkflowContractTests
             orderId,
             Guid.NewGuid(),
             27.50m,
+            TestAddress(),
             new[] { new OrderCreatedItem(Guid.NewGuid(), "Chicken Bowl", 1, 27.50m) });
 
         var orderOutbox = OutboxMessage.Create("quickbite.orders.order-created.v1", orderCreated, "QuickBite.Orders.Api");
 
-        var paymentSucceeded = new PaymentSucceededEvent(orderId, Guid.NewGuid(), orderCreated.TotalAmount);
+        var paymentSucceeded = new PaymentSucceededEvent(orderId, Guid.NewGuid(), orderCreated.TotalAmount, orderCreated.DeliveryAddress);
         var paymentOutbox = OutboxMessage.Create(
             "quickbite.payments.payment-succeeded.v1",
             paymentSucceeded,
@@ -44,6 +45,7 @@ public sealed class WorkflowContractTests
         AssertEnvelope(orderOutbox.EnvelopeJson, "order.created", "QuickBite.Orders.Api");
         AssertEnvelope(paymentOutbox.EnvelopeJson, "payment.succeeded", "QuickBite.Payments.Api");
         AssertEnvelope(deliveryOutbox.EnvelopeJson, "delivery.assigned", "QuickBite.Delivery.Api");
+        Assert.Equal(orderCreated.DeliveryAddress, paymentSucceeded.DeliveryAddress);
     }
 
     [Fact]
@@ -65,4 +67,6 @@ public sealed class WorkflowContractTests
         Assert.Equal(producer, envelope.RootElement.GetProperty("producer").GetString());
         Assert.True(envelope.RootElement.GetProperty("eventId").GetGuid() != Guid.Empty);
     }
+
+    private static DeliveryAddressPayload TestAddress() => new("123 Market Street", "Apt 4", "Seattle", "WA", "98101", "USA");
 }

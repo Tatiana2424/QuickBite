@@ -2,6 +2,7 @@ import { Link, Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { useAuth } from "./auth/AuthContext";
 import { CartProvider, useCart } from "./cart/CartContext";
+import { AccountPage } from "./pages/AccountPage";
 import { LoginPage } from "./pages/LoginPage";
 import { OrderDetailsPage } from "./pages/OrderDetailsPage";
 import { OrdersPage } from "./pages/OrdersPage";
@@ -34,6 +35,7 @@ function AppShell() {
         <nav aria-label="Primary navigation">
           <Link to="/">Restaurants</Link>
           <Link to="/orders">My orders</Link>
+          {isAuthenticated && <Link to="/account">Account</Link>}
           {itemCount > 0 && <span className="cart-badge" aria-label={`${itemCount} items in cart`}>{itemCount}</span>}
         </nav>
         <div className="account-actions">
@@ -66,6 +68,14 @@ function AppShell() {
             element={
               <ProtectedRoute>
                 <OrderDetailsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/account"
+            element={
+              <ProtectedRoute>
+                <AccountPage />
               </ProtectedRoute>
             }
           />

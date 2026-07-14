@@ -35,6 +35,12 @@ public sealed class DeliveryDbContext(DbContextOptions<DeliveryDbContext> option
             entity.ToTable("Deliveries");
             entity.HasKey(x => x.Id);
             entity.HasIndex(x => x.OrderId).IsUnique();
+            entity.Property(x => x.AddressLine1).HasMaxLength(200);
+            entity.Property(x => x.AddressLine2).HasMaxLength(200);
+            entity.Property(x => x.City).HasMaxLength(120);
+            entity.Property(x => x.State).HasMaxLength(80);
+            entity.Property(x => x.PostalCode).HasMaxLength(20);
+            entity.Property(x => x.Country).HasMaxLength(80);
             entity.HasOne(x => x.Courier).WithMany().HasForeignKey(x => x.CourierId);
         });
 
@@ -97,7 +103,14 @@ internal sealed class DeliveryReadService(DeliveryDbContext dbContext) : IDelive
         return await dbContext.Deliveries
             .AsNoTracking()
             .Where(x => x.OrderId == orderId)
-            .Select(x => new DeliveryDto(x.Id, x.OrderId, x.Status.ToString(), x.CourierId, x.Courier!.Name, x.Courier.PhoneNumber))
+            .Select(x => new DeliveryDto(
+                x.Id,
+                x.OrderId,
+                x.Status.ToString(),
+                x.CourierId,
+                x.Courier!.Name,
+                x.Courier.PhoneNumber,
+                new DeliveryAddressDto(x.AddressLine1, x.AddressLine2, x.City, x.State, x.PostalCode, x.Country)))
             .FirstOrDefaultAsync(cancellationToken);
     }
 }
@@ -147,7 +160,22 @@ internal sealed class PaymentSucceededConsumer : KafkaConsumerBackgroundService<
         }
 
         var courier = await dbContext.Couriers.OrderBy(x => x.Name).FirstAsync(cancellationToken);
-        var delivery = new QuickBite.Delivery.Domain.Delivery(envelope.Payload.OrderId, courier.Id);
+        var address = envelope.Payload.DeliveryAddress ?? new DeliveryAddressPayload(
+            "Address unavailable",
+            null,
+            "Unknown",
+            "Unknown",
+            "00000",
+            "Unknown");
+        var delivery = new QuickBite.Delivery.Domain.Delivery(
+            envelope.Payload.OrderId,
+            courier.Id,
+            address.Line1,
+            address.Line2,
+            address.City,
+            address.State,
+            address.PostalCode,
+            address.Country);
         dbContext.Deliveries.Add(delivery);
         dbContext.DeliveryStatusHistory.Add(new DeliveryStatusHistory(delivery.Id, delivery.Status, "Courier assigned after successful payment."));
 

@@ -7,6 +7,17 @@ import { App } from "../src/App";
 import { AuthProvider } from "../src/auth/AuthContext";
 import { createOrder } from "../src/services/quickbiteService";
 
+const { testAddress } = vi.hoisted(() => ({
+  testAddress: {
+    line1: "123 Market Street",
+    line2: null,
+    city: "Seattle",
+    state: "WA",
+    postalCode: "98101",
+    country: "USA"
+  }
+}));
+
 vi.mock("../src/services/quickbiteService", () => ({
   getRestaurants: vi.fn().mockResolvedValue([
     {
@@ -49,6 +60,7 @@ vi.mock("../src/services/quickbiteService", () => ({
     status: "Confirmed",
     totalAmount: 12.5,
     createdAtUtc: "2026-07-14T12:00:00Z",
+    deliveryAddress: testAddress,
     items: [
       {
         menuItemId: "menu-item-1",
@@ -65,7 +77,15 @@ vi.mock("../src/services/quickbiteService", () => ({
     status: "Succeeded",
     failureReason: null
   }),
-  getDeliveryForOrder: vi.fn().mockResolvedValue(null),
+  getDeliveryForOrder: vi.fn().mockResolvedValue({
+    id: "delivery-1",
+    orderId: "order-1",
+    status: "Assigned",
+    courierId: "courier-1",
+    courierName: "Mia Brooks",
+    courierPhoneNumber: "+1-555-0102",
+    address: testAddress
+  }),
   getMyOrders: vi.fn().mockResolvedValue([
     {
       id: "order-1",
@@ -82,6 +102,7 @@ vi.mock("../src/services/quickbiteService", () => ({
     status: "PaymentProcessing",
     totalAmount: 12.5,
     createdAtUtc: "2026-07-14T12:00:00Z",
+    deliveryAddress: testAddress,
     items: [
       {
         menuItemId: "menu-item-1",
@@ -161,6 +182,21 @@ describe("QuickBite app shell", () => {
     expect(screen.getByText("2 x Harvest Bowl")).toBeTruthy();
   });
 
+  it("shows account details for signed-in customers", async () => {
+    seedSession();
+    renderApp("/account");
+
+    expect(await screen.findByRole("heading", { name: "Your QuickBite profile" })).toBeTruthy();
+    expect(screen.getByText("customer@quickbite.local")).toBeTruthy();
+    expect(screen.getByText("Customer")).toBeTruthy();
+  });
+
+  it("guards the account page until the user signs in", async () => {
+    renderApp("/account");
+
+    expect(await screen.findByRole("heading", { name: "Sign in to order faster" })).toBeTruthy();
+  });
+
   it("guards order routes until the user signs in", async () => {
     renderApp("/orders");
 
@@ -203,6 +239,7 @@ describe("QuickBite app shell", () => {
 
     expect(await screen.findByRole("heading", { name: "Order order-1" })).toBeTruthy();
     expect(createOrder).toHaveBeenCalledWith(expect.objectContaining({
+      deliveryAddress: testAddress,
       items: [
         {
           menuItemId: "menu-item-1",
@@ -220,7 +257,8 @@ describe("QuickBite app shell", () => {
 
     expect(await screen.findByRole("heading", { name: "Order order-1" })).toBeTruthy();
     expect(await screen.findByText("Succeeded")).toBeTruthy();
-    expect(await screen.findByText("Delivery will be assigned after payment confirmation.")).toBeTruthy();
+    expect(await screen.findByText("Mia Brooks")).toBeTruthy();
+    expect(screen.getAllByText(/123 Market Street/).length).toBeGreaterThan(0);
     expect(screen.getByText("2 x Harvest Bowl")).toBeTruthy();
   });
 
@@ -250,6 +288,7 @@ function renderApp(initialRoute: string) {
     </QueryClientProvider>
   );
 }
+
 
 function seedSession() {
   localStorage.setItem(

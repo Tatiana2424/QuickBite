@@ -31,8 +31,18 @@ export interface CreateOrderItemRequest {
   unitPrice: number;
 }
 
+export interface DeliveryAddress {
+  line1: string;
+  line2?: string | null;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+}
+
 export interface CreateOrderRequest {
   items: CreateOrderItemRequest[];
+  deliveryAddress: DeliveryAddress;
   idempotencyKey?: string;
 }
 
@@ -42,6 +52,7 @@ export interface Order {
   status: string;
   totalAmount: number;
   createdAtUtc: string;
+  deliveryAddress: DeliveryAddress;
   items: OrderItem[];
 }
 
@@ -74,6 +85,7 @@ export interface Delivery {
   courierId: string;
   courierName: string;
   courierPhoneNumber: string;
+  address: DeliveryAddress;
 }
 
 export interface AuthUser {

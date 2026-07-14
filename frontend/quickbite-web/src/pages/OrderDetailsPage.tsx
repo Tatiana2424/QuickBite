@@ -69,6 +69,17 @@ export function OrderDetailsPage() {
           ))}
         </ul>
       </article>
+      <article className="panel order-detail">
+        <div>
+          <p className="eyebrow">Delivery address</p>
+          <strong>{order.deliveryAddress.line1}</strong>
+        </div>
+        <address className="delivery-address">
+          {order.deliveryAddress.line2 && <span>{order.deliveryAddress.line2}</span>}
+          <span>{order.deliveryAddress.city}, {order.deliveryAddress.state} {order.deliveryAddress.postalCode}</span>
+          <span>{order.deliveryAddress.country}</span>
+        </address>
+      </article>
       <Link className="text-link" to="/orders">Back to orders</Link>
     </section>
   );
@@ -128,6 +139,7 @@ function DeliveryLifecycleCard({
     <LifecycleCard title="Delivery" status={delivery.status}>
       <p>{delivery.courierName}</p>
       <p className="muted">{delivery.courierPhoneNumber}</p>
+      <p className="muted">{delivery.address.line1}, {delivery.address.city}</p>
     </LifecycleCard>
   );
 }

@@ -15,7 +15,7 @@ public sealed class ReliabilityMessageTests
 
         var message = OutboxMessage.Create(
             "quickbite.orders.order-created.v1",
-            new OrderCreatedEvent(orderId, Guid.NewGuid(), 42.50m, []),
+            new OrderCreatedEvent(orderId, Guid.NewGuid(), 42.50m, TestAddress(), []),
             "QuickBite.Orders.Api",
             correlationId,
             causationId);
@@ -60,4 +60,6 @@ public sealed class ReliabilityMessageTests
 
         Assert.Equal(processedAt, message.ProcessedAtUtc);
     }
+
+    private static DeliveryAddressPayload TestAddress() => new("123 Market Street", null, "Seattle", "WA", "98101", "USA");
 }

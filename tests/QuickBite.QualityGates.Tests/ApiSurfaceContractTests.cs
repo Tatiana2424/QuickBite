@@ -34,7 +34,7 @@ public sealed class ApiSurfaceContractTests
 
         Assert.Contains("[Authorize]", source, StringComparison.Ordinal);
         Assert.Contains("[FromBody] CustomerCreateOrderRequest request", source, StringComparison.Ordinal);
-        Assert.Contains("new CreateOrderRequest(userId, request.Items, idempotencyKey)", source, StringComparison.Ordinal);
+        Assert.Contains("new CreateOrderRequest(userId, request.Items, request.DeliveryAddress, idempotencyKey)", source, StringComparison.Ordinal);
         Assert.DoesNotContain("[FromBody] CreateOrderRequest request", source, StringComparison.Ordinal);
         Assert.Contains("public sealed record CustomerCreateOrderRequest(IReadOnlyCollection<CreateOrderItemRequest> Items", contracts, StringComparison.Ordinal);
     }

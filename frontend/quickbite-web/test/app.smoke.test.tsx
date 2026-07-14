@@ -5,6 +5,7 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { App } from "../src/App";
 import { AuthProvider } from "../src/auth/AuthContext";
+import { createOrder } from "../src/services/quickbiteService";
 
 vi.mock("../src/services/quickbiteService", () => ({
   getRestaurants: vi.fn().mockResolvedValue([
@@ -20,7 +21,15 @@ vi.mock("../src/services/quickbiteService", () => ({
     name: "Urban Bowl",
     cuisine: "Healthy",
     description: "Balanced bowls and fresh wraps.",
-    menuItems: []
+    menuItems: [
+      {
+        id: "menu-item-1",
+        restaurantId: "restaurant-1",
+        name: "Harvest Bowl",
+        description: "Grains, greens, and citrus dressing.",
+        price: 6.25
+      }
+    ]
   }),
   getOrder: vi.fn().mockResolvedValue({
     id: "order-1",
@@ -47,6 +56,21 @@ vi.mock("../src/services/quickbiteService", () => ({
       ]
     }
   ]),
+  createOrder: vi.fn().mockResolvedValue({
+    id: "order-1",
+    userId: "user-1",
+    status: "PaymentProcessing",
+    totalAmount: 12.5,
+    createdAtUtc: "2026-07-14T12:00:00Z",
+    items: [
+      {
+        menuItemId: "menu-item-1",
+        name: "Harvest Bowl",
+        quantity: 2,
+        unitPrice: 6.25
+      }
+    ]
+  }),
   login: vi.fn().mockResolvedValue({
     userId: "user-1",
     email: "customer@quickbite.local",
@@ -122,6 +146,32 @@ describe("QuickBite app shell", () => {
 
     expect(await screen.findByRole("heading", { name: "My Orders" })).toBeTruthy();
     expect(screen.getByText("New Customer")).toBeTruthy();
+  });
+
+  it("lets signed-in customers add menu items and checkout", async () => {
+    const user = userEvent.setup();
+    seedSession();
+    renderApp("/restaurants/restaurant-1");
+
+    await user.click(await screen.findByRole("button", { name: "Add to cart" }));
+    await user.click(screen.getByRole("button", { name: "Increase Harvest Bowl" }));
+
+    expect(screen.getAllByText("$12.50")).toHaveLength(2);
+
+    await user.click(screen.getByRole("button", { name: "Checkout" }));
+
+    expect(await screen.findByRole("heading", { name: "Order order-1" })).toBeTruthy();
+    expect(createOrder).toHaveBeenCalledWith(expect.objectContaining({
+      userId: "user-1",
+      items: [
+        {
+          menuItemId: "menu-item-1",
+          name: "Harvest Bowl",
+          quantity: 2,
+          unitPrice: 6.25
+        }
+      ]
+    }));
   });
 
   it("prefills the login form with the seeded customer account", async () => {

@@ -62,6 +62,7 @@ public sealed class OrderServiceCurrentUserTests
         return new CreateOrderRequest(
             userId,
             [new CreateOrderItemRequest(Guid.NewGuid(), itemName, 2, 7.50m)],
+            new DeliveryAddressRequest("123 Market Street", null, "Seattle", "WA", "98101", "USA"),
             idempotencyKey);
     }
 }

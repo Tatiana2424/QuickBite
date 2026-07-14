@@ -27,7 +27,7 @@ public sealed class KafkaProducerEnvelopeTests
     {
         var orderId = Guid.NewGuid();
         var fallback = Guid.NewGuid();
-        var message = new OrderCreatedEvent(orderId, Guid.NewGuid(), 12.99m, []);
+        var message = new OrderCreatedEvent(orderId, Guid.NewGuid(), 12.99m, TestAddress(), []);
 
         var key = KafkaProducer.ResolveMessageKey(message, fallback);
 
@@ -44,4 +44,6 @@ public sealed class KafkaProducerEnvelopeTests
 
         Assert.Equal(fallback.ToString("N"), key);
     }
+
+    private static DeliveryAddressPayload TestAddress() => new("123 Market Street", null, "Seattle", "WA", "98101", "USA");
 }

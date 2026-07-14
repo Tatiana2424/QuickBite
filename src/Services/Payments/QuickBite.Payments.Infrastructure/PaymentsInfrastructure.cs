@@ -135,7 +135,7 @@ internal sealed class OrderCreatedConsumer : KafkaConsumerBackgroundService<Orde
         {
             dbContext.OutboxMessages.Add(OutboxMessage.Create(
                 kafkaOptions.Value.Topics.PaymentSucceeded,
-                new PaymentSucceededEvent(payment.OrderId, payment.Id, payment.Amount),
+                new PaymentSucceededEvent(payment.OrderId, payment.Id, payment.Amount, envelope.Payload.DeliveryAddress),
                 kafkaOptions.Value.Producer,
                 envelope.CorrelationId,
                 envelope.EventId));

@@ -35,7 +35,7 @@ public sealed class OrdersController(IOrderService orderService) : ControllerBas
             : request.IdempotencyKey;
 
         var order = await orderService.CreateAsync(
-            new CreateOrderRequest(userId, request.Items, idempotencyKey),
+            new CreateOrderRequest(userId, request.Items, request.DeliveryAddress, idempotencyKey),
             cancellationToken);
 
         return CreatedAtAction(nameof(GetById), new { id = order.Id }, order);
@@ -112,8 +112,22 @@ public sealed class CustomerCreateOrderRequestValidator : AbstractValidator<Cust
     public CustomerCreateOrderRequestValidator()
     {
         RuleFor(x => x.Items).NotEmpty();
+        RuleFor(x => x.DeliveryAddress).NotNull().SetValidator(new DeliveryAddressRequestValidator());
         RuleFor(x => x.IdempotencyKey).MaximumLength(120);
         RuleForEach(x => x.Items).SetValidator(new CreateOrderItemRequestValidator());
+    }
+}
+
+public sealed class DeliveryAddressRequestValidator : AbstractValidator<DeliveryAddressRequest>
+{
+    public DeliveryAddressRequestValidator()
+    {
+        RuleFor(x => x.Line1).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.Line2).MaximumLength(200);
+        RuleFor(x => x.City).NotEmpty().MaximumLength(120);
+        RuleFor(x => x.State).NotEmpty().MaximumLength(80);
+        RuleFor(x => x.PostalCode).NotEmpty().MaximumLength(20);
+        RuleFor(x => x.Country).NotEmpty().MaximumLength(80);
     }
 }
 

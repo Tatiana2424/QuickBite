@@ -29,6 +29,12 @@ public sealed class OrdersDbContext(DbContextOptions<OrdersDbContext> options) :
             entity.HasIndex(x => new { x.UserId, x.IdempotencyKey }).IsUnique().HasFilter("[IdempotencyKey] IS NOT NULL");
             entity.Property(x => x.IdempotencyKey).HasMaxLength(120);
             entity.Property(x => x.TotalAmount).HasColumnType("decimal(10,2)");
+            entity.Property(x => x.DeliveryAddressLine1).HasMaxLength(200);
+            entity.Property(x => x.DeliveryAddressLine2).HasMaxLength(200);
+            entity.Property(x => x.DeliveryAddressCity).HasMaxLength(120);
+            entity.Property(x => x.DeliveryAddressState).HasMaxLength(80);
+            entity.Property(x => x.DeliveryAddressPostalCode).HasMaxLength(20);
+            entity.Property(x => x.DeliveryAddressCountry).HasMaxLength(80);
             entity.HasMany(x => x.Items).WithOne(x => x.Order).HasForeignKey(x => x.OrderId);
         });
 
@@ -98,7 +104,16 @@ internal sealed class OrderService(
         }
 
         var items = request.Items.Select(item => new OrderItem(item.MenuItemId, item.Name, item.Quantity, item.UnitPrice)).ToList();
-        var order = new Order(request.UserId, items, request.IdempotencyKey);
+        var order = new Order(
+            request.UserId,
+            items,
+            request.DeliveryAddress.Line1,
+            request.DeliveryAddress.Line2,
+            request.DeliveryAddress.City,
+            request.DeliveryAddress.State,
+            request.DeliveryAddress.PostalCode,
+            request.DeliveryAddress.Country,
+            request.IdempotencyKey);
 
         dbContext.Orders.Add(order);
         dbContext.OrderStatusHistory.Add(new OrderStatusHistory(order.Id, order.Status, "Order created and payment processing started."));
@@ -107,6 +122,7 @@ internal sealed class OrderService(
             order.Id,
             order.UserId,
             order.TotalAmount,
+            MapAddressPayload(order),
             order.Items.Select(x => new OrderCreatedItem(x.MenuItemId, x.Name, x.Quantity, x.UnitPrice)).ToList());
 
         dbContext.OutboxMessages.Add(OutboxMessage.Create(
@@ -201,6 +217,7 @@ internal sealed class OrderService(
         order.Status.ToString(),
         order.TotalAmount,
         order.CreatedAtUtc,
+        MapAddress(order),
         order.Items.Select(x => new OrderItemDto(x.MenuItemId, x.Name, x.Quantity, x.UnitPrice)).ToList());
 
     private static OrderDetailsDto MapDetails(Order order) => new(
@@ -209,7 +226,24 @@ internal sealed class OrderService(
         order.Status.ToString(),
         order.TotalAmount,
         order.CreatedAtUtc,
+        MapAddress(order),
         order.Items.Select(x => new OrderItemDto(x.MenuItemId, x.Name, x.Quantity, x.UnitPrice)).ToList());
+
+    private static DeliveryAddressDto MapAddress(Order order) => new(
+        order.DeliveryAddressLine1,
+        order.DeliveryAddressLine2,
+        order.DeliveryAddressCity,
+        order.DeliveryAddressState,
+        order.DeliveryAddressPostalCode,
+        order.DeliveryAddressCountry);
+
+    private static DeliveryAddressPayload MapAddressPayload(Order order) => new(
+        order.DeliveryAddressLine1,
+        order.DeliveryAddressLine2,
+        order.DeliveryAddressCity,
+        order.DeliveryAddressState,
+        order.DeliveryAddressPostalCode,
+        order.DeliveryAddressCountry);
 
     private static OrderSummaryDto MapSummary(Order order)
     {

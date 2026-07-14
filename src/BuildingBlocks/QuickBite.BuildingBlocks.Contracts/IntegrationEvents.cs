@@ -26,14 +26,21 @@ public static class IntegrationEventTypes
     public const string DeliveryCompleted = "delivery.completed";
 }
 
-public sealed record OrderCreatedEvent(Guid OrderId, Guid UserId, decimal TotalAmount, IReadOnlyCollection<OrderCreatedItem> Items) : IIntegrationEvent
+public sealed record DeliveryAddressPayload(string Line1, string? Line2, string City, string State, string PostalCode, string Country);
+
+public sealed record OrderCreatedEvent(
+    Guid OrderId,
+    Guid UserId,
+    decimal TotalAmount,
+    DeliveryAddressPayload DeliveryAddress,
+    IReadOnlyCollection<OrderCreatedItem> Items) : IIntegrationEvent
 {
     public string EventType => IntegrationEventTypes.OrderCreated;
 }
 
 public sealed record OrderCreatedItem(Guid MenuItemId, string Name, int Quantity, decimal UnitPrice);
 
-public sealed record PaymentSucceededEvent(Guid OrderId, Guid PaymentId, decimal Amount) : IIntegrationEvent
+public sealed record PaymentSucceededEvent(Guid OrderId, Guid PaymentId, decimal Amount, DeliveryAddressPayload? DeliveryAddress = null) : IIntegrationEvent
 {
     public string EventType => IntegrationEventTypes.PaymentSucceeded;
 }

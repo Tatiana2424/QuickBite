@@ -35,7 +35,7 @@ public sealed class KafkaContractTests
     [Fact]
     public void Integration_event_contracts_keep_expected_event_type_names()
     {
-        Assert.Equal("order.created", new OrderCreatedEvent(Guid.NewGuid(), Guid.NewGuid(), 10m, Array.Empty<OrderCreatedItem>()).EventType);
+        Assert.Equal("order.created", new OrderCreatedEvent(Guid.NewGuid(), Guid.NewGuid(), 10m, TestAddress(), Array.Empty<OrderCreatedItem>()).EventType);
         Assert.Equal("payment.succeeded", new PaymentSucceededEvent(Guid.NewGuid(), Guid.NewGuid(), 10m).EventType);
         Assert.Equal("payment.failed", new PaymentFailedEvent(Guid.NewGuid(), Guid.NewGuid(), 10m, "Declined").EventType);
         Assert.Equal("delivery.assigned", new DeliveryAssignedEvent(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "Mia").EventType);
@@ -52,6 +52,8 @@ public sealed class KafkaContractTests
                 topic => topic.Value.GetString() ?? string.Empty,
                 StringComparer.Ordinal);
     }
+
+    private static DeliveryAddressPayload TestAddress() => new("123 Market Street", null, "Seattle", "WA", "98101", "USA");
 
     private static JsonElement LoadKafkaSettings(string serviceName)
     {

@@ -16,16 +16,37 @@ public sealed class Order : Entity
     public string? IdempotencyKey { get; private set; }
     public OrderStatus Status { get; private set; } = OrderStatus.Pending;
     public decimal TotalAmount { get; private set; }
+    public string DeliveryAddressLine1 { get; private set; } = string.Empty;
+    public string? DeliveryAddressLine2 { get; private set; }
+    public string DeliveryAddressCity { get; private set; } = string.Empty;
+    public string DeliveryAddressState { get; private set; } = string.Empty;
+    public string DeliveryAddressPostalCode { get; private set; } = string.Empty;
+    public string DeliveryAddressCountry { get; private set; } = string.Empty;
     public List<OrderItem> Items { get; private set; } = new();
 
     private Order()
     {
     }
 
-    public Order(Guid userId, IEnumerable<OrderItem> items, string? idempotencyKey = null)
+    public Order(
+        Guid userId,
+        IEnumerable<OrderItem> items,
+        string deliveryAddressLine1,
+        string? deliveryAddressLine2,
+        string deliveryAddressCity,
+        string deliveryAddressState,
+        string deliveryAddressPostalCode,
+        string deliveryAddressCountry,
+        string? idempotencyKey = null)
     {
         UserId = userId;
         IdempotencyKey = string.IsNullOrWhiteSpace(idempotencyKey) ? null : idempotencyKey.Trim();
+        DeliveryAddressLine1 = deliveryAddressLine1.Trim();
+        DeliveryAddressLine2 = string.IsNullOrWhiteSpace(deliveryAddressLine2) ? null : deliveryAddressLine2.Trim();
+        DeliveryAddressCity = deliveryAddressCity.Trim();
+        DeliveryAddressState = deliveryAddressState.Trim();
+        DeliveryAddressPostalCode = deliveryAddressPostalCode.Trim();
+        DeliveryAddressCountry = deliveryAddressCountry.Trim();
         Items = items.ToList();
         TotalAmount = Items.Sum(x => x.UnitPrice * x.Quantity);
         Status = OrderStatus.PaymentProcessing;

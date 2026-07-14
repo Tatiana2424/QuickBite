@@ -9,6 +9,18 @@ test.beforeEach(async ({ page }) => {
           name: "Urban Bowl",
           cuisine: "Healthy",
           description: "Balanced bowls and fresh wraps."
+        },
+        {
+          id: "restaurant-2",
+          name: "Pizza Port",
+          cuisine: "Italian",
+          description: "Stone baked pizzas and sides."
+        },
+        {
+          id: "restaurant-3",
+          name: "Taco Lane",
+          cuisine: "Mexican",
+          description: "Street tacos, bowls, and bright salsas."
         }
       ]
     });
@@ -141,8 +153,27 @@ test.beforeEach(async ({ page }) => {
 test("loads restaurants through the gateway contract", async ({ page }) => {
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { name: "Choose dinner in a few taps" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Urban Bowl" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Find the right meal, then checkout fast." })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Urban Bowl/ }).first()).toBeVisible();
+});
+
+test("filters restaurant discovery by search and cuisine", async ({ page }) => {
+  await page.goto("/");
+
+  const discovery = page.getByRole("region", { name: "All restaurants" });
+  await expect(discovery.getByRole("link", { name: /Urban Bowl/ })).toBeVisible();
+  await expect(discovery.getByRole("link", { name: /Pizza Port/ })).toBeVisible();
+
+  await discovery.getByLabel("Search restaurants").fill("pizza");
+
+  await expect(discovery.getByRole("link", { name: /Pizza Port/ })).toBeVisible();
+  await expect(discovery.getByRole("link", { name: /Urban Bowl/ })).toHaveCount(0);
+
+  await discovery.getByLabel("Search restaurants").fill("");
+  await discovery.getByRole("button", { name: "Healthy" }).click();
+
+  await expect(discovery.getByRole("link", { name: /Urban Bowl/ })).toBeVisible();
+  await expect(discovery.getByRole("link", { name: /Pizza Port/ })).toHaveCount(0);
 });
 
 test("guards orders and returns after login", async ({ page }) => {

@@ -220,8 +220,87 @@ label {
   max-width: 46rem;
 }
 
+.page-heading h1 {
+  margin: 0 0 0.6rem;
+  font-size: 3rem;
+  line-height: 1.05;
+}
+
 .page-heading h2 {
   margin-bottom: 0.35rem;
+}
+
+.home-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 1rem;
+  padding: 1.6rem;
+  border: 1px solid #dce3ea;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ffffff 0%, #f4fbf8 52%, #fff7ed 100%);
+}
+
+.home-hero .button-link {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.section-heading {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.section-heading h2 {
+  margin: 0;
+}
+
+.featured-section,
+.discovery-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.featured-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.discovery-panel {
+  padding-top: 0.5rem;
+}
+
+.discovery-controls {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(260px, 1.4fr);
+  gap: 1rem;
+  align-items: end;
+}
+
+.search-field {
+  min-width: 0;
+}
+
+.filter-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filter-chip {
+  border: 1px solid #c9d3df;
+  background: #ffffff;
+  color: #344054;
+  padding: 0.56rem 0.78rem;
+}
+
+.filter-chip:hover,
+.filter-chip:focus-visible,
+.filter-chip--active {
+  border-color: #12b886;
+  background: #e7f8f2;
+  color: #0b6b57;
 }
 
 .grid {
@@ -265,12 +344,26 @@ label {
 
 .restaurant-card {
   min-height: 10rem;
+  transition: border-color 0.15s ease, transform 0.15s ease;
 }
 
 .restaurant-card:hover,
 .restaurant-card:focus-visible,
 .menu-item-card:hover {
   border-color: #9ad8c8;
+}
+
+.restaurant-card:hover,
+.restaurant-card:focus-visible {
+  transform: translateY(-2px);
+  outline: none;
+}
+
+.restaurant-card__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
 .cuisine-chip {
@@ -281,6 +374,19 @@ label {
   color: #0b6b57;
   font-size: 0.82rem;
   font-weight: 800;
+}
+
+.rank-chip {
+  border-radius: 999px;
+  padding: 0.18rem 0.5rem;
+  background: #fff4e6;
+  color: #c24805;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.reset-filters {
+  justify-self: start;
 }
 
 .order-card {
@@ -421,6 +527,16 @@ label {
     justify-content: flex-start;
     flex-wrap: wrap;
   }
+
+  .home-hero,
+  .discovery-controls {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .home-hero .button-link {
+    justify-self: start;
+  }
 }
 
 @media (max-width: 560px) {
@@ -437,6 +553,23 @@ label {
   .session-card {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .home-hero {
+    padding: 1rem;
+  }
+
+  .page-heading h1 {
+    font-size: 2.15rem;
+  }
+
+  .filter-chip-group {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filter-chip {
+    min-width: 0;
   }
 
   .cart-line {

@@ -113,6 +113,83 @@ internal sealed class DeliveryReadService(DeliveryDbContext dbContext) : IDelive
                 new DeliveryAddressDto(x.AddressLine1, x.AddressLine2, x.City, x.State, x.PostalCode, x.Country)))
             .FirstOrDefaultAsync(cancellationToken);
     }
+
+    public async Task<IReadOnlyCollection<DeliveryDto>> ListForCourierAsync(string courierName, CancellationToken cancellationToken)
+    {
+        return await dbContext.Deliveries
+            .AsNoTracking()
+            .Include(x => x.Courier)
+            .Where(x => x.Courier!.Name == courierName)
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .Select(x => new DeliveryDto(
+                x.Id,
+                x.OrderId,
+                x.Status.ToString(),
+                x.CourierId,
+                x.Courier!.Name,
+                x.Courier.PhoneNumber,
+                new DeliveryAddressDto(x.AddressLine1, x.AddressLine2, x.City, x.State, x.PostalCode, x.Country)))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<DeliveryDto?> GetForCourierByIdAsync(string courierName, Guid deliveryId, CancellationToken cancellationToken)
+    {
+        return await dbContext.Deliveries
+            .AsNoTracking()
+            .Include(x => x.Courier)
+            .Where(x => x.Courier!.Name == courierName && x.Id == deliveryId)
+            .Select(x => new DeliveryDto(
+                x.Id,
+                x.OrderId,
+                x.Status.ToString(),
+                x.CourierId,
+                x.Courier!.Name,
+                x.Courier.PhoneNumber,
+                new DeliveryAddressDto(x.AddressLine1, x.AddressLine2, x.City, x.State, x.PostalCode, x.Country)))
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<DeliveryDto?> UpdateCourierDeliveryStatusAsync(string courierName, Guid deliveryId, string status, CancellationToken cancellationToken)
+    {
+        var delivery = await dbContext.Deliveries
+            .Include(x => x.Courier)
+            .FirstOrDefaultAsync(x => x.Courier!.Name == courierName && x.Id == deliveryId, cancellationToken);
+
+        if (delivery is null)
+        {
+            return null;
+        }
+
+        switch (status.Trim().ToLowerInvariant())
+        {
+            case "accepted":
+                delivery.Accept();
+                break;
+            case "pickedup":
+            case "picked-up":
+            case "picked up":
+                delivery.MarkPickedUp();
+                break;
+            case "delivered":
+                delivery.MarkDelivered();
+                break;
+            default:
+                throw new InvalidOperationException("Unsupported delivery status.");
+        }
+
+        dbContext.DeliveryStatusHistory.Add(new DeliveryStatusHistory(delivery.Id, delivery.Status, $"Courier updated delivery to {delivery.Status}."));
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return MapDelivery(delivery);
+    }
+
+    private static DeliveryDto MapDelivery(QuickBite.Delivery.Domain.Delivery delivery) => new(
+        delivery.Id,
+        delivery.OrderId,
+        delivery.Status.ToString(),
+        delivery.CourierId,
+        delivery.Courier!.Name,
+        delivery.Courier.PhoneNumber,
+        new DeliveryAddressDto(delivery.AddressLine1, delivery.AddressLine2, delivery.City, delivery.State, delivery.PostalCode, delivery.Country));
 }
 
 internal sealed class DeliveryOutboxPublisher(

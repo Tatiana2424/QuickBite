@@ -6,7 +6,10 @@ public enum DeliveryStatus
 {
     Created = 0,
     Assigned = 1,
-    Completed = 2
+    Accepted = 2,
+    PickedUp = 3,
+    Delivered = 4,
+    Completed = 5
 }
 
 public sealed class Courier : Entity
@@ -82,5 +85,32 @@ public sealed class Delivery : Entity
         PostalCode = postalCode.Trim();
         Country = country.Trim();
         Status = DeliveryStatus.Assigned;
+    }
+
+    public void Accept()
+    {
+        if (Status is DeliveryStatus.Assigned)
+        {
+            Status = DeliveryStatus.Accepted;
+            Touch();
+        }
+    }
+
+    public void MarkPickedUp()
+    {
+        if (Status is DeliveryStatus.Accepted or DeliveryStatus.Assigned)
+        {
+            Status = DeliveryStatus.PickedUp;
+            Touch();
+        }
+    }
+
+    public void MarkDelivered()
+    {
+        if (Status is DeliveryStatus.PickedUp or DeliveryStatus.Accepted or DeliveryStatus.Assigned)
+        {
+            Status = DeliveryStatus.Delivered;
+            Touch();
+        }
     }
 }

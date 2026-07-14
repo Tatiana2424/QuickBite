@@ -3,12 +3,16 @@ import { ApiError } from "../lib/apiErrors";
 import type {
   AuthResponse,
   CreateOrderRequest,
+  CourierDeliveryStatus,
   Delivery,
+  MenuItem,
+  MenuItemMutationRequest,
   Order,
   OrderSummary,
   OrderSummaryPage,
   Payment,
   RestaurantDetails,
+  RestaurantMutationRequest,
   RestaurantSummary
 } from "../models";
 
@@ -19,6 +23,26 @@ export async function getRestaurants(): Promise<RestaurantSummary[]> {
 
 export async function getRestaurantDetails(restaurantId: string): Promise<RestaurantDetails> {
   const response = await apiClient.get<RestaurantDetails>(`/catalog/api/restaurants/${restaurantId}`);
+  return response.data;
+}
+
+export async function createRestaurant(request: RestaurantMutationRequest): Promise<RestaurantDetails> {
+  const response = await apiClient.post<RestaurantDetails>("/catalog/api/restaurants", request);
+  return response.data;
+}
+
+export async function updateRestaurant(restaurantId: string, request: RestaurantMutationRequest): Promise<RestaurantDetails> {
+  const response = await apiClient.put<RestaurantDetails>(`/catalog/api/restaurants/${restaurantId}`, request);
+  return response.data;
+}
+
+export async function createMenuItem(restaurantId: string, request: MenuItemMutationRequest): Promise<MenuItem> {
+  const response = await apiClient.post<MenuItem>(`/catalog/api/restaurants/${restaurantId}/menu`, request);
+  return response.data;
+}
+
+export async function updateMenuItem(restaurantId: string, menuItemId: string, request: MenuItemMutationRequest): Promise<MenuItem> {
+  const response = await apiClient.put<MenuItem>(`/catalog/api/restaurants/${restaurantId}/menu/${menuItemId}`, request);
   return response.data;
 }
 
@@ -51,6 +75,16 @@ export async function getDeliveryForOrder(orderId: string): Promise<Delivery | n
 
     throw error;
   }
+}
+
+export async function getMyCourierDeliveries(): Promise<Delivery[]> {
+  const response = await apiClient.get<Delivery[]>("/delivery/api/deliveries/courier/my");
+  return response.data;
+}
+
+export async function updateCourierDeliveryStatus(deliveryId: string, status: CourierDeliveryStatus): Promise<Delivery> {
+  const response = await apiClient.patch<Delivery>(`/delivery/api/deliveries/courier/my/${deliveryId}/status`, { status });
+  return response.data;
 }
 
 export async function getMyOrders(limit = 20, cursor?: string | null): Promise<OrderSummary[]> {

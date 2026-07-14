@@ -17,6 +17,18 @@ export interface RestaurantDetails extends RestaurantSummary {
   menuItems: MenuItem[];
 }
 
+export interface RestaurantMutationRequest {
+  name: string;
+  cuisine: string;
+  description: string;
+}
+
+export interface MenuItemMutationRequest {
+  name: string;
+  description: string;
+  price: number;
+}
+
 export interface OrderItem {
   menuItemId: string;
   name: string;
@@ -87,6 +99,8 @@ export interface Delivery {
   courierPhoneNumber: string;
   address: DeliveryAddress;
 }
+
+export type CourierDeliveryStatus = "Accepted" | "PickedUp" | "Delivered";
 
 export interface AuthUser {
   id: string;

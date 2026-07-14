@@ -15,9 +15,15 @@ public sealed class Restaurant : Entity
 
     public Restaurant(string name, string cuisine, string description)
     {
-        Name = name;
-        Cuisine = cuisine;
-        Description = description;
+        Update(name, cuisine, description);
+    }
+
+    public void Update(string name, string cuisine, string description)
+    {
+        Name = name.Trim();
+        Cuisine = cuisine.Trim();
+        Description = description.Trim();
+        Touch();
     }
 }
 
@@ -36,8 +42,14 @@ public sealed class MenuItem : Entity
     public MenuItem(Guid restaurantId, string name, string description, decimal price)
     {
         RestaurantId = restaurantId;
-        Name = name;
-        Description = description;
+        Update(name, description, price);
+    }
+
+    public void Update(string name, string description, decimal price)
+    {
+        Name = name.Trim();
+        Description = description.Trim();
         Price = price;
+        Touch();
     }
 }

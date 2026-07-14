@@ -193,8 +193,10 @@ describe("QuickBite app shell", () => {
   it("renders navigation and restaurant data from the gateway service layer", async () => {
     renderApp("/");
 
+    expect(screen.getByRole("link", { name: "Home" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Restaurants" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "My orders" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Cart" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Orders" })).toBeTruthy();
     expect(await screen.findByRole("heading", { name: "Find the right meal, then checkout fast." })).toBeTruthy();
     expect((await screen.findAllByText("Urban Bowl")).length).toBeGreaterThan(0);
   });
@@ -224,10 +226,41 @@ describe("QuickBite app shell", () => {
     seedSession();
     renderApp("/");
 
-    await user.click(screen.getByRole("link", { name: "My orders" }));
+    await user.click(screen.getByRole("link", { name: "Orders" }));
 
     expect(await screen.findByRole("heading", { name: "My Orders" })).toBeTruthy();
     expect(screen.getByText("2 x Harvest Bowl")).toBeTruthy();
+  });
+
+  it("shows customer navigation states for signed-out and signed-in users", async () => {
+    const { unmount } = renderApp("/");
+
+    expect(screen.getByRole("link", { name: "Sign in" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Create account" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "Account" })).toBeNull();
+
+    unmount();
+    cleanup();
+    seedSession();
+    renderApp("/");
+
+    expect(screen.getByRole("link", { name: "Account" })).toBeTruthy();
+    expect(screen.getByLabelText("Signed in user").textContent).toContain("QuickBite Customer");
+  });
+
+  it("opens and closes the mobile navigation menu", async () => {
+    const user = userEvent.setup();
+    renderApp("/");
+
+    const menuButton = screen.getByRole("button", { name: "Menu" });
+    expect(menuButton.getAttribute("aria-expanded")).toBe("false");
+
+    await user.click(menuButton);
+    expect(menuButton.getAttribute("aria-expanded")).toBe("true");
+
+    await user.click(screen.getByRole("link", { name: "Cart" }));
+    expect(await screen.findByRole("heading", { name: "Your cart" })).toBeTruthy();
+    expect(menuButton.getAttribute("aria-expanded")).toBe("false");
   });
 
   it("shows account details for signed-in customers", async () => {
@@ -317,15 +350,34 @@ describe("QuickBite app shell", () => {
     }));
   });
 
+  it("lets customers review cart quantities before checkout", async () => {
+    const user = userEvent.setup();
+    seedCart();
+    renderApp("/cart");
+
+    expect(await screen.findByRole("heading", { name: "Your cart" })).toBeTruthy();
+    expect(screen.getByText("Harvest Bowl")).toBeTruthy();
+    expect(screen.getAllByText("$12.50").length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole("button", { name: "Increase Harvest Bowl" }));
+    expect(screen.getAllByText("$18.75").length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole("button", { name: "Continue checkout" }));
+    expect(await screen.findByRole("heading", { name: "Urban Bowl" })).toBeTruthy();
+  });
+
   it("shows payment status and pending delivery on order details", async () => {
     seedSession();
     renderApp("/orders/order-1");
 
     expect(await screen.findByRole("heading", { name: "Order order-1" })).toBeTruthy();
-    expect(await screen.findByText("Succeeded")).toBeTruthy();
+    expect(await screen.findByRole("region", { name: "Order progress" })).toBeTruthy();
+    expect((await screen.findAllByText("Succeeded")).length).toBeGreaterThan(0);
+    expect(await screen.findByText("Payment succeeded and the kitchen can continue.")).toBeTruthy();
     expect(await screen.findByText("Mia Brooks")).toBeTruthy();
     expect(screen.getAllByText(/123 Market Street/).length).toBeGreaterThan(0);
     expect(screen.getByText("2 x Harvest Bowl")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Refresh status" })).toBeTruthy();
   });
 
   it("prefills the login form with the seeded customer account", async () => {
@@ -344,7 +396,7 @@ function renderApp(initialRoute: string) {
     }
   });
 
-  render(
+  return render(
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <MemoryRouter initialEntries={[initialRoute]}>
@@ -371,5 +423,20 @@ function seedSession(roles = ["Customer"], fullName = "QuickBite Customer", emai
       refreshToken: "refresh",
       refreshTokenExpiresAtUtc: "2099-05-09T00:00:00Z"
     })
+  );
+}
+
+function seedCart() {
+  localStorage.setItem(
+    "quickbite.cart",
+    JSON.stringify([
+      {
+        menuItemId: "menu-item-1",
+        restaurantId: "restaurant-1",
+        name: "Harvest Bowl",
+        unitPrice: 6.25,
+        quantity: 2
+      }
+    ])
   );
 }

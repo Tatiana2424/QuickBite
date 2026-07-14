@@ -119,14 +119,18 @@ label {
   font-weight: 800;
 }
 
-.site-header nav {
+.mobile-menu-button {
+  display: none;
+}
+
+.primary-nav {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
 }
 
-.site-header nav a,
+.primary-nav a,
 .button-link {
   border-radius: 8px;
   padding: 0.62rem 0.85rem;
@@ -134,8 +138,15 @@ label {
   font-weight: 700;
 }
 
-.site-header nav a:hover,
-.site-header nav a:focus-visible,
+.primary-nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.primary-nav a:hover,
+.primary-nav a:focus-visible,
+.primary-nav a.active,
 .button-link:hover,
 .button-link:focus-visible {
   background: #eef8f4;
@@ -414,6 +425,17 @@ label {
   gap: 1rem;
 }
 
+.order-detail-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.order-detail-heading h2 {
+  margin-bottom: 0.2rem;
+}
+
 .lifecycle-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -437,6 +459,73 @@ label {
   color: #0b6b57;
   font-size: 0.85rem;
   font-weight: 700;
+}
+
+.status-pill--success {
+  background: #e7f8f2;
+  color: #0b6b57;
+}
+
+.status-pill--danger {
+  background: #fff5f5;
+  color: #b42318;
+}
+
+.progress-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.progress-step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: start;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e6edf3;
+}
+
+.progress-step:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.progress-dot {
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.3rem;
+  border-radius: 999px;
+  border: 3px solid #12b886;
+  background: #ffffff;
+}
+
+.progress-step--complete .progress-dot {
+  background: #12b886;
+}
+
+.progress-step--failed .progress-dot {
+  border-color: #f04438;
+  background: #f04438;
+}
+
+.progress-step--disabled {
+  opacity: 0.72;
+}
+
+.progress-step__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.progress-step__header span {
+  color: #64748b;
+  font-weight: 700;
+}
+
+.progress-step p {
+  margin: 0.25rem 0 0;
 }
 
 .order-items {
@@ -463,6 +552,24 @@ label {
 .cart-lines {
   display: grid;
   gap: 1rem;
+}
+
+.cart-page-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.cart-page-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.cart-total--large {
+  padding-top: 1rem;
+  border-top: 1px solid #e6edf3;
+  font-size: 1.1rem;
 }
 
 .cart-summary h3 {
@@ -632,13 +739,31 @@ label {
 
 @media (max-width: 900px) {
   .site-header {
-    grid-template-columns: 1fr;
-    align-items: stretch;
+    grid-template-columns: 1fr auto;
+    align-items: center;
     padding: 1rem;
   }
 
-  .site-header nav,
+  .mobile-menu-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .primary-nav {
+    display: none;
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    padding-top: 0.25rem;
+  }
+
+  .primary-nav--open {
+    display: flex;
+  }
+
   .account-actions {
+    grid-column: 1 / -1;
     justify-content: flex-start;
     flex-wrap: wrap;
   }
@@ -660,7 +785,17 @@ label {
     padding-block: 1rem 2rem;
   }
 
-  .site-header nav a,
+  .primary-nav {
+    display: none;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .primary-nav--open {
+    display: grid;
+  }
+
+  .primary-nav a,
   .button-link {
     padding: 0.55rem 0.65rem;
   }
@@ -690,6 +825,13 @@ label {
   .cart-line {
     grid-template-columns: 1fr;
     justify-items: start;
+  }
+
+  .cart-page-actions,
+  .order-detail-heading,
+  .progress-step__header {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .checkout-address-grid {

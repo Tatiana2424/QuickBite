@@ -14,8 +14,13 @@ public sealed class User : Entity
     {
     }
 
-    public User(string email, string fullName, string passwordHash)
+    public User(string email, string fullName, string passwordHash, Guid? id = null)
     {
+        if (id.HasValue)
+        {
+            UseSeedIdentity(id.Value);
+        }
+
         Email = email.Trim().ToLowerInvariant();
         FullName = fullName.Trim();
         PasswordHash = passwordHash;

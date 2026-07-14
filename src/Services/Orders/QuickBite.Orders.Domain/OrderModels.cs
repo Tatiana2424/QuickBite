@@ -37,8 +37,15 @@ public sealed class Order : Entity
         string deliveryAddressState,
         string deliveryAddressPostalCode,
         string deliveryAddressCountry,
-        string? idempotencyKey = null)
+        string? idempotencyKey = null,
+        Guid? id = null,
+        DateTimeOffset? createdAtUtc = null)
     {
+        if (id.HasValue)
+        {
+            UseSeedIdentity(id.Value, createdAtUtc);
+        }
+
         UserId = userId;
         IdempotencyKey = string.IsNullOrWhiteSpace(idempotencyKey) ? null : idempotencyKey.Trim();
         DeliveryAddressLine1 = deliveryAddressLine1.Trim();
@@ -88,8 +95,13 @@ public sealed class OrderItem : Entity
     {
     }
 
-    public OrderItem(Guid menuItemId, string name, int quantity, decimal unitPrice)
+    public OrderItem(Guid menuItemId, string name, int quantity, decimal unitPrice, Guid? id = null)
     {
+        if (id.HasValue)
+        {
+            UseSeedIdentity(id.Value);
+        }
+
         MenuItemId = menuItemId;
         Name = name;
         Quantity = quantity;

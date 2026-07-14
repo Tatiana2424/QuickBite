@@ -61,7 +61,32 @@ public static class PaymentsInfrastructureServiceCollectionExtensions
 
     public static async Task EnsurePaymentsDatabaseAsync(this IServiceProvider serviceProvider)
     {
-        await serviceProvider.InitializeDatabaseAsync<PaymentsDbContext>();
+        await serviceProvider.InitializeDatabaseAsync<PaymentsDbContext>(SeedAsync);
+    }
+
+    private static async Task SeedAsync(
+        PaymentsDbContext dbContext,
+        DatabaseInitializationOptions options,
+        CancellationToken cancellationToken)
+    {
+        if (!options.SeedDemoData || await dbContext.Payments.AnyAsync(cancellationToken))
+        {
+            return;
+        }
+
+        var confirmedPayment = new Payment(DemoSeedData.DemoConfirmedOrderId, 31.90m, PaymentStatus.Succeeded);
+        var failedPayment = new Payment(
+            DemoSeedData.DemoFailedOrderId,
+            222.45m,
+            PaymentStatus.Failed,
+            "Payment was rejected by the simulated provider.");
+
+        dbContext.Payments.AddRange(confirmedPayment, failedPayment);
+        dbContext.PaymentStatusHistory.AddRange(
+            new PaymentStatusHistory(confirmedPayment.Id, confirmedPayment.Status, "Demo payment provider approved the payment."),
+            new PaymentStatusHistory(failedPayment.Id, failedPayment.Status, failedPayment.FailureReason ?? "Demo payment failed."));
+
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 }
 

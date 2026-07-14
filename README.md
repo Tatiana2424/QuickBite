@@ -141,6 +141,51 @@ Use this mode when validating the full containerized experience.
 3. Run `npm run dev`.
 4. Run `npm test` for frontend runtime/config tests.
 
+## Demo data and test accounts
+
+Local and full-stack Docker modes seed realistic demo data when `DatabaseInitialization:SeedDemoData` is enabled.
+If an older local Docker database already exists, recreate the stack volumes to load the full current demo set.
+
+Demo password for every seeded account: `Pass123!`
+
+| Account | Role | What to test |
+| --- | --- | --- |
+| `customer@quickbite.local` | Customer | Browse restaurants, checkout, My Orders, and order details with seeded history. |
+| `family@quickbite.local` | Customer | A second clean customer login. |
+| `restaurant@quickbite.local` | RestaurantAdmin | Restaurant and menu management screens. |
+| `courier@quickbite.local` | Courier | Courier delivery operations. |
+| `admin@quickbite.local` | PlatformAdmin | Admin-level access to protected operational screens. |
+
+Seeded catalog data includes Urban Bowl, Pizza Port, Taco Lane, Sushi Central, Breakfast Club, and Curry House with 20 menu items across healthy, Italian, Mexican, Japanese, breakfast, and Indian categories.
+
+The seeded customer account includes three orders:
+
+| State | Expected UI behavior |
+| --- | --- |
+| `Confirmed` | Order details show a succeeded payment and assigned delivery. |
+| `PaymentProcessing` | Order details show pending payment and delivery states. |
+| `Failed` | Order details show a failed payment and no delivery assignment. |
+
+## End-to-end tests
+
+The normal Playwright suite runs against mocked gateway responses and is part of CI:
+
+```bash
+cd frontend/quickbite-web
+npm run test:e2e
+```
+
+To run the real customer journey against the full local stack:
+
+```powershell
+docker compose -f docker-compose.yml -f docker-compose.fullstack.yml up -d --build
+cd frontend/quickbite-web
+$env:QUICKBITE_FULLSTACK_E2E = "1"
+npm run test:e2e:fullstack
+```
+
+The full-stack suite expects the gateway at `http://localhost:8080` and the frontend dev server at `http://127.0.0.1:5173`.
+
 ## Event flow
 
 1. The Orders service persists a new order and stores `order.created` in its outbox.

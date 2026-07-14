@@ -78,7 +78,75 @@ public static class OrdersInfrastructureServiceCollectionExtensions
 
     public static async Task EnsureOrdersDatabaseAsync(this IServiceProvider serviceProvider)
     {
-        await serviceProvider.InitializeDatabaseAsync<OrdersDbContext>();
+        await serviceProvider.InitializeDatabaseAsync<OrdersDbContext>(SeedAsync);
+    }
+
+    private static async Task SeedAsync(
+        OrdersDbContext dbContext,
+        DatabaseInitializationOptions options,
+        CancellationToken cancellationToken)
+    {
+        if (!options.SeedDemoData || await dbContext.Orders.AnyAsync(cancellationToken))
+        {
+            return;
+        }
+
+        var confirmedOrder = new Order(
+            DemoSeedData.CustomerUserId,
+            [
+                new OrderItem(DemoSeedData.UrbanBowlChickenPowerBowlId, "Chicken Power Bowl", 1, 12.90m),
+                new OrderItem(DemoSeedData.UrbanBowlFalafelWrapId, "Falafel Wrap", 2, 9.50m)
+            ],
+            "123 Market Street",
+            "Apt 4B",
+            "Seattle",
+            "WA",
+            "98101",
+            "USA",
+            "demo-confirmed-order",
+            DemoSeedData.DemoConfirmedOrderId,
+            DateTimeOffset.UtcNow.AddHours(-5));
+        confirmedOrder.MarkConfirmed();
+
+        var processingOrder = new Order(
+            DemoSeedData.CustomerUserId,
+            [new OrderItem(DemoSeedData.PizzaPortMargheritaId, "Margherita", 1, 11.00m)],
+            "123 Market Street",
+            "Apt 4B",
+            "Seattle",
+            "WA",
+            "98101",
+            "USA",
+            "demo-processing-order",
+            DemoSeedData.DemoProcessingOrderId,
+            DateTimeOffset.UtcNow.AddMinutes(-35));
+
+        var failedOrder = new Order(
+            DemoSeedData.CustomerUserId,
+            [
+                new OrderItem(DemoSeedData.SushiCentralSalmonSetId, "Salmon Sushi Set", 8, 18.90m),
+                new OrderItem(DemoSeedData.TacoLaneBirriaTacosId, "Birria Tacos", 5, 14.25m)
+            ],
+            "123 Market Street",
+            "Apt 4B",
+            "Seattle",
+            "WA",
+            "98101",
+            "USA",
+            "demo-failed-order",
+            DemoSeedData.DemoFailedOrderId,
+            DateTimeOffset.UtcNow.AddDays(-1));
+        failedOrder.MarkPaymentFailed();
+
+        dbContext.Orders.AddRange(confirmedOrder, processingOrder, failedOrder);
+        dbContext.OrderStatusHistory.AddRange(
+            new OrderStatusHistory(confirmedOrder.Id, OrderStatus.PaymentProcessing, "Demo order created."),
+            new OrderStatusHistory(confirmedOrder.Id, OrderStatus.Confirmed, "Demo payment succeeded."),
+            new OrderStatusHistory(processingOrder.Id, OrderStatus.PaymentProcessing, "Demo order is waiting for payment processing."),
+            new OrderStatusHistory(failedOrder.Id, OrderStatus.PaymentProcessing, "Demo order created."),
+            new OrderStatusHistory(failedOrder.Id, OrderStatus.Failed, "Demo payment failed."));
+
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 }
 

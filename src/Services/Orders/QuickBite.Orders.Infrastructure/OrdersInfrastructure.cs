@@ -155,6 +155,46 @@ internal sealed class OrderService(
         return orders.Select(Map).ToList();
     }
 
+    public async Task<OrderDetailsDto?> GetDetailsForUserByIdAsync(Guid userId, Guid id, CancellationToken cancellationToken)
+    {
+        var order = await dbContext.Orders
+            .AsNoTracking()
+            .Include(x => x.Items)
+            .FirstOrDefaultAsync(x => x.UserId == userId && x.Id == id, cancellationToken);
+
+        return order is null ? null : MapDetails(order);
+    }
+
+    public async Task<OrderSummaryPageDto> ListSummariesForUserAsync(
+        Guid userId,
+        int limit,
+        string? cursor,
+        CancellationToken cancellationToken)
+    {
+        var safeLimit = Math.Clamp(limit, 1, 50);
+        var query = dbContext.Orders
+            .AsNoTracking()
+            .Include(x => x.Items)
+            .Where(x => x.UserId == userId);
+
+        if (TryParseCursor(cursor, out var cursorCreatedAtUtc))
+        {
+            query = query.Where(x => x.CreatedAtUtc < cursorCreatedAtUtc);
+        }
+
+        var orders = await query
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .Take(safeLimit + 1)
+            .ToListAsync(cancellationToken);
+
+        var pageOrders = orders.Take(safeLimit).ToList();
+        var nextCursor = orders.Count > safeLimit
+            ? pageOrders[^1].CreatedAtUtc.ToUnixTimeMilliseconds().ToString(System.Globalization.CultureInfo.InvariantCulture)
+            : null;
+
+        return new OrderSummaryPageDto(pageOrders.Select(MapSummary).ToList(), nextCursor);
+    }
+
     private static OrderDto Map(Order order) => new(
         order.Id,
         order.UserId,
@@ -162,6 +202,58 @@ internal sealed class OrderService(
         order.TotalAmount,
         order.CreatedAtUtc,
         order.Items.Select(x => new OrderItemDto(x.MenuItemId, x.Name, x.Quantity, x.UnitPrice)).ToList());
+
+    private static OrderDetailsDto MapDetails(Order order) => new(
+        order.Id,
+        order.UserId,
+        order.Status.ToString(),
+        order.TotalAmount,
+        order.CreatedAtUtc,
+        order.Items.Select(x => new OrderItemDto(x.MenuItemId, x.Name, x.Quantity, x.UnitPrice)).ToList());
+
+    private static OrderSummaryDto MapSummary(Order order)
+    {
+        var visibleItems = order.Items.Take(3).Select(x => $"{x.Quantity} x {x.Name}").ToList();
+        var remainingCount = order.Items.Count - visibleItems.Count;
+        var itemSummary = remainingCount > 0
+            ? $"{string.Join(", ", visibleItems)} + {remainingCount} more"
+            : string.Join(", ", visibleItems);
+
+        return new OrderSummaryDto(
+            order.Id,
+            order.Status.ToString(),
+            order.TotalAmount,
+            order.CreatedAtUtc,
+            order.Items.Sum(x => x.Quantity),
+            itemSummary);
+    }
+
+    private static bool TryParseCursor(string? cursor, out DateTimeOffset createdAtUtc)
+    {
+        createdAtUtc = default;
+
+        if (string.IsNullOrWhiteSpace(cursor))
+        {
+            return false;
+        }
+
+        return long.TryParse(cursor, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var milliseconds)
+            && TrySetDateTimeOffset(milliseconds, out createdAtUtc);
+    }
+
+    private static bool TrySetDateTimeOffset(long milliseconds, out DateTimeOffset value)
+    {
+        try
+        {
+            value = DateTimeOffset.FromUnixTimeMilliseconds(milliseconds);
+            return true;
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            value = default;
+            return false;
+        }
+    }
 }
 
 internal sealed class OrdersOutboxPublisher(

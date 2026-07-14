@@ -1,6 +1,16 @@
 import { anonymousApiClient, apiClient } from "../lib/api";
 import { ApiError } from "../lib/apiErrors";
-import type { AuthResponse, CreateOrderRequest, Delivery, Order, Payment, RestaurantDetails, RestaurantSummary } from "../models";
+import type {
+  AuthResponse,
+  CreateOrderRequest,
+  Delivery,
+  Order,
+  OrderSummary,
+  OrderSummaryPage,
+  Payment,
+  RestaurantDetails,
+  RestaurantSummary
+} from "../models";
 
 export async function getRestaurants(): Promise<RestaurantSummary[]> {
   const response = await apiClient.get<RestaurantSummary[]>("/catalog/api/restaurants");
@@ -13,7 +23,7 @@ export async function getRestaurantDetails(restaurantId: string): Promise<Restau
 }
 
 export async function getOrder(orderId: string): Promise<Order> {
-  const response = await apiClient.get<Order>(`/orders/api/orders/${orderId}`);
+  const response = await apiClient.get<Order>(`/orders/api/orders/my/${orderId}`);
   return response.data;
 }
 
@@ -43,9 +53,16 @@ export async function getDeliveryForOrder(orderId: string): Promise<Delivery | n
   }
 }
 
-export async function getMyOrders(limit = 20): Promise<Order[]> {
-  const response = await apiClient.get<Order[]>("/orders/api/orders", {
-    params: { limit }
+export async function getMyOrders(limit = 20, cursor?: string | null): Promise<OrderSummary[]> {
+  const response = await apiClient.get<OrderSummaryPage>("/orders/api/orders/my", {
+    params: { limit, cursor }
+  });
+  return response.data.items;
+}
+
+export async function getMyOrdersPage(limit = 20, cursor?: string | null): Promise<OrderSummaryPage> {
+  const response = await apiClient.get<OrderSummaryPage>("/orders/api/orders/my", {
+    params: { limit, cursor }
   });
   return response.data;
 }

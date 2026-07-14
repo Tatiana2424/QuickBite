@@ -10,6 +10,21 @@ public sealed record OrderDto(
     decimal TotalAmount,
     DateTimeOffset CreatedAtUtc,
     IReadOnlyCollection<OrderItemDto> Items);
+public sealed record OrderSummaryDto(
+    Guid Id,
+    string Status,
+    decimal TotalAmount,
+    DateTimeOffset CreatedAtUtc,
+    int ItemCount,
+    string ItemSummary);
+public sealed record OrderDetailsDto(
+    Guid Id,
+    Guid UserId,
+    string Status,
+    decimal TotalAmount,
+    DateTimeOffset CreatedAtUtc,
+    IReadOnlyCollection<OrderItemDto> Items);
+public sealed record OrderSummaryPageDto(IReadOnlyCollection<OrderSummaryDto> Items, string? NextCursor);
 
 public interface IOrderService
 {
@@ -17,4 +32,6 @@ public interface IOrderService
     Task<OrderDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
     Task<OrderDto?> GetForUserByIdAsync(Guid userId, Guid id, CancellationToken cancellationToken);
     Task<IReadOnlyCollection<OrderDto>> ListForUserAsync(Guid userId, int limit, CancellationToken cancellationToken);
+    Task<OrderDetailsDto?> GetDetailsForUserByIdAsync(Guid userId, Guid id, CancellationToken cancellationToken);
+    Task<OrderSummaryPageDto> ListSummariesForUserAsync(Guid userId, int limit, string? cursor, CancellationToken cancellationToken);
 }

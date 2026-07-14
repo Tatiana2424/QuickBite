@@ -159,6 +159,7 @@ Observability details are documented in `docs/observability.md`.
 Testing and CI quality gates are documented in `docs/testing-strategy.md`.
 Frontend hardening details are documented in `docs/frontend-production-readiness.md`.
 Release automation and promotion details are documented in `docs/release-management.md`.
+Go-live readiness, backup/DR, incident response, and launch/rollback checklists are documented in `docs/go-live-readiness.md` and `docs/operations/`.
 
 ## Current status
 

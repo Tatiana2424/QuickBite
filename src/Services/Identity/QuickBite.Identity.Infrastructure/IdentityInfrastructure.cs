@@ -169,21 +169,22 @@ public static class IdentityInfrastructureServiceCollectionExtensions
         var courierRole = await dbContext.Roles.SingleAsync(x => x.Name == IdentityRoles.Courier, cancellationToken);
         var platformAdminRole = await dbContext.Roles.SingleAsync(x => x.Name == IdentityRoles.PlatformAdmin, cancellationToken);
 
-        AddDemoUser(dbContext, "customer@quickbite.local", "QuickBite Customer", customerRole);
-        AddDemoUser(dbContext, "restaurant@quickbite.local", "Restaurant Manager", restaurantAdminRole);
-        AddDemoUser(dbContext, "courier@quickbite.local", "Alex Rider", courierRole);
-        AddDemoUser(dbContext, "admin@quickbite.local", "QuickBite Admin", platformAdminRole);
+        AddDemoUser(dbContext, DemoSeedData.CustomerUserId, "customer@quickbite.local", "QuickBite Customer", customerRole);
+        AddDemoUser(dbContext, DemoSeedData.CustomerTwoUserId, "family@quickbite.local", "Family Tester", customerRole);
+        AddDemoUser(dbContext, DemoSeedData.RestaurantAdminUserId, "restaurant@quickbite.local", "Restaurant Manager", restaurantAdminRole);
+        AddDemoUser(dbContext, DemoSeedData.CourierUserId, "courier@quickbite.local", "Alex Rider", courierRole);
+        AddDemoUser(dbContext, DemoSeedData.PlatformAdminUserId, "admin@quickbite.local", "QuickBite Admin", platformAdminRole);
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    private static void AddDemoUser(IdentityDbContext dbContext, string email, string fullName, Role role)
+    private static void AddDemoUser(IdentityDbContext dbContext, Guid id, string email, string fullName, Role role)
     {
         if (dbContext.Users.Local.Any(x => x.Email == email) || dbContext.Users.Any(x => x.Email == email))
         {
             return;
         }
 
-        var user = new User(email, fullName, PasswordHasher.Hash("Pass123!"));
+        var user = new User(email, fullName, PasswordHasher.Hash(DemoSeedData.DemoPassword), id);
         user.AssignRole(role);
         dbContext.Users.Add(user);
     }

@@ -21,8 +21,13 @@ public sealed class Courier : Entity
     {
     }
 
-    public Courier(string name, string phoneNumber)
+    public Courier(string name, string phoneNumber, Guid? id = null)
     {
+        if (id.HasValue)
+        {
+            UseSeedIdentity(id.Value);
+        }
+
         Name = name;
         PhoneNumber = phoneNumber;
     }
@@ -74,8 +79,14 @@ public sealed class Delivery : Entity
         string city,
         string state,
         string postalCode,
-        string country)
+        string country,
+        Guid? id = null)
     {
+        if (id.HasValue)
+        {
+            UseSeedIdentity(id.Value);
+        }
+
         OrderId = orderId;
         CourierId = courierId;
         AddressLine1 = addressLine1.Trim();

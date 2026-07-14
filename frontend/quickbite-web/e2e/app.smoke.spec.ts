@@ -36,15 +36,45 @@ test.beforeEach(async ({ page }) => {
   });
 
   await page.route("**/identity/api/auth/login", async (route) => {
+    const requestBody = route.request().postDataJSON() as Record<string, string>;
+    if (requestBody.email === "wrong@quickbite.local") {
+      await route.fulfill({
+        status: 401,
+        json: {
+          title: "Unauthorized",
+          detail: "Invalid credentials.",
+          status: 401,
+          traceId: "trace-invalid-login"
+        }
+      });
+      return;
+    }
+
     await route.fulfill({
       json: {
         userId: "user-1",
-        email: "demo@quickbite.local",
+        email: requestBody.email || "customer@quickbite.local",
         fullName: "Demo Customer",
         roles: ["Customer"],
         accessToken: "access-token",
         accessTokenExpiresAtUtc: "2099-05-02T00:00:00Z",
         refreshToken: "refresh-token",
+        refreshTokenExpiresAtUtc: "2099-05-09T00:00:00Z"
+      }
+    });
+  });
+
+  await page.route("**/identity/api/auth/register", async (route) => {
+    const requestBody = route.request().postDataJSON() as Record<string, string>;
+    await route.fulfill({
+      json: {
+        userId: "registered-user-1",
+        email: requestBody.email,
+        fullName: requestBody.fullName,
+        roles: ["Customer"],
+        accessToken: "registered-access-token",
+        accessTokenExpiresAtUtc: "2099-05-02T00:00:00Z",
+        refreshToken: "registered-refresh-token",
         refreshTokenExpiresAtUtc: "2099-05-09T00:00:00Z"
       }
     });
@@ -210,8 +240,28 @@ test("shows account information for signed-in customers", async ({ page }) => {
   await page.getByRole("link", { name: "Account" }).click();
 
   await expect(page.getByRole("heading", { name: "Your QuickBite profile" })).toBeVisible();
-  await expect(page.getByLabel("Account information")).toContainText("demo@quickbite.local");
+  await expect(page.getByLabel("Account information")).toContainText("customer@quickbite.local");
   await expect(page.getByLabel("Account information")).toContainText("Customer");
+});
+
+test("registers a customer account and lands on protected orders", async ({ page }) => {
+  await page.goto("/register");
+  await page.getByLabel("Full name").fill("New Customer");
+  await page.getByLabel("Email").fill("new.customer@quickbite.local");
+  await page.getByLabel("Password").fill("Pass123!");
+  await page.getByRole("button", { name: "Create account" }).click();
+
+  await expect(page.getByRole("heading", { name: "My Orders" })).toBeVisible();
+  await expect(page.getByLabel("Signed in user")).toContainText("New Customer");
+});
+
+test("shows an error for invalid login credentials", async ({ page }) => {
+  await page.goto("/login");
+  await page.getByLabel("Email").fill("wrong@quickbite.local");
+  await page.getByLabel("Password").fill("bad-password");
+  await page.getByRole("button", { name: "Sign in" }).click();
+
+  await expect(page.getByText("Invalid email or password.")).toBeVisible();
 });
 
 test("lets signed-in customers add menu items and checkout", async ({ page }) => {
@@ -229,4 +279,8 @@ test("lets signed-in customers add menu items and checkout", async ({ page }) =>
   await expect(page.getByText("Succeeded")).toBeVisible();
   await expect(page.getByText("Mia Brooks")).toBeVisible();
   await expect(page.getByText("123 Market Street").first()).toBeVisible();
+
+  await page.getByRole("link", { name: "My orders" }).click();
+  await expect(page.getByRole("heading", { name: "My Orders" })).toBeVisible();
+  await expect(page.getByText("2 x Harvest Bowl")).toBeVisible();
 });

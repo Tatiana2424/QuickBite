@@ -13,8 +13,13 @@ public sealed class Restaurant : Entity
     {
     }
 
-    public Restaurant(string name, string cuisine, string description)
+    public Restaurant(string name, string cuisine, string description, Guid? id = null)
     {
+        if (id.HasValue)
+        {
+            UseSeedIdentity(id.Value);
+        }
+
         Update(name, cuisine, description);
     }
 
@@ -39,8 +44,13 @@ public sealed class MenuItem : Entity
     {
     }
 
-    public MenuItem(Guid restaurantId, string name, string description, decimal price)
+    public MenuItem(Guid restaurantId, string name, string description, decimal price, Guid? id = null)
     {
+        if (id.HasValue)
+        {
+            UseSeedIdentity(id.Value);
+        }
+
         RestaurantId = restaurantId;
         Update(name, description, price);
     }

@@ -88,10 +88,20 @@ public static class DeliveryInfrastructureServiceCollectionExtensions
             return;
         }
 
-        dbContext.Couriers.AddRange(
-            new Courier("Alex Rider", "+1-555-0101"),
-            new Courier("Mia Brooks", "+1-555-0102"));
+        var alex = new Courier("Alex Rider", "+1-555-0101");
+        var mia = new Courier("Mia Brooks", "+1-555-0102");
+        var noah = new Courier("Noah Patel", "+1-555-0103");
 
+        dbContext.Couriers.AddRange(alex, mia, noah);
+        dbContext.Deliveries.Add(new QuickBite.Delivery.Domain.Delivery(
+            DemoSeedData.DemoConfirmedOrderId,
+            alex.Id,
+            "123 Market Street",
+            "Apt 4B",
+            "Seattle",
+            "WA",
+            "98101",
+            "USA"));
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 }

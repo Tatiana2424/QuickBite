@@ -1,0 +1,56 @@
+global:
+  environment: production
+  imageTag: latest
+  kafka:
+    bootstrapServers: quickbite-kafka-bootstrap.kafka.svc.cluster.local:9092
+    topicPartitionCount: "6"
+    topicReplicationFactor: "3"
+
+namespace:
+  name: quickbite-production
+
+ingress:
+  host: quickbite.example.com
+  tls:
+    secretName: quickbite-production-tls
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+
+components:
+  identity:
+    replicas: 3
+    autoscaling:
+      minReplicas: 3
+      maxReplicas: 10
+  catalog:
+    replicas: 3
+    autoscaling:
+      minReplicas: 3
+      maxReplicas: 10
+  orders:
+    replicas: 3
+    autoscaling:
+      minReplicas: 3
+      maxReplicas: 12
+  payments:
+    replicas: 3
+    autoscaling:
+      minReplicas: 3
+      maxReplicas: 12
+  delivery:
+    replicas: 3
+    autoscaling:
+      minReplicas: 3
+      maxReplicas: 10
+  gateway:
+    replicas: 3
+    allowedOrigins:
+      - https://quickbite.example.com
+    autoscaling:
+      minReplicas: 3
+      maxReplicas: 10
+  web:
+    replicas: 3
+    autoscaling:
+      minReplicas: 3
+      maxReplicas: 8

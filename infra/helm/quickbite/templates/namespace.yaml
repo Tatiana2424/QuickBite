@@ -1,0 +1,9 @@
+{{- if .Values.namespace.create }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespace.name }}
+  labels:
+    {{- include "quickbite.labels" . | nindent 4 }}
+    quickbite.io/environment: {{ .Values.global.environment | quote }}
+{{- end }}

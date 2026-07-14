@@ -1,0 +1,22 @@
+global:
+  environment: staging
+  imageTag: latest
+  kafka:
+    bootstrapServers: quickbite-kafka-bootstrap.kafka.svc.cluster.local:9092
+    topicPartitionCount: "3"
+    topicReplicationFactor: "3"
+
+namespace:
+  name: quickbite-staging
+
+ingress:
+  host: staging.quickbite.example.com
+  tls:
+    secretName: quickbite-staging-tls
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+
+components:
+  gateway:
+    allowedOrigins:
+      - https://staging.quickbite.example.com

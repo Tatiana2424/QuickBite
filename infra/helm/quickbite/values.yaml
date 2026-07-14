@@ -1,0 +1,219 @@
+global:
+  environment: staging
+  imageRegistry: ghcr.io/tatiana2424
+  imagePullPolicy: IfNotPresent
+  imageTag: latest
+  kafka:
+    enabled: "true"
+    bootstrapServers: quickbite-kafka-bootstrap.kafka.svc.cluster.local:9092
+    topicPartitionCount: "3"
+    topicReplicationFactor: "3"
+  databaseInitialization:
+    applyMigrationsOnStartup: "false"
+    seedDemoData: "false"
+    recreateDatabaseIfMigrationHistoryMissing: "false"
+
+namespace:
+  create: true
+  name: quickbite-staging
+
+secrets:
+  create: false
+  existingSecret: quickbite-runtime-secrets
+  data:
+    identityConnectionString: ""
+    catalogConnectionString: ""
+    ordersConnectionString: ""
+    paymentsConnectionString: ""
+    deliveryConnectionString: ""
+    jwtKey: ""
+
+ingress:
+  enabled: true
+  className: nginx
+  host: staging.quickbite.example.com
+  tls:
+    enabled: true
+    secretName: quickbite-staging-tls
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+    nginx.ingress.kubernetes.io/proxy-body-size: "8m"
+  paths:
+    - path: /identity
+      service: gateway
+      port: http
+    - path: /catalog
+      service: gateway
+      port: http
+    - path: /orders
+      service: gateway
+      port: http
+    - path: /payments
+      service: gateway
+      port: http
+    - path: /delivery
+      service: gateway
+      port: http
+    - path: /
+      service: web
+      port: http
+
+components:
+  identity:
+    enabled: true
+    kind: api
+    name: identity-api
+    image:
+      repository: quickbite-identity-api
+    replicas: 2
+    port: 8080
+    kafkaClientId: quickbite-identity-api
+    kafkaProducer: QuickBite.Identity.Api
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 70
+
+  catalog:
+    enabled: true
+    kind: api
+    name: catalog-api
+    image:
+      repository: quickbite-catalog-api
+    replicas: 2
+    port: 8080
+    kafkaClientId: quickbite-catalog-api
+    kafkaProducer: QuickBite.Catalog.Api
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 70
+
+  orders:
+    enabled: true
+    kind: api
+    name: orders-api
+    image:
+      repository: quickbite-orders-api
+    replicas: 2
+    port: 8080
+    kafkaClientId: quickbite-orders-api
+    kafkaProducer: QuickBite.Orders.Api
+    resources:
+      requests:
+        cpu: 150m
+        memory: 384Mi
+      limits:
+        cpu: 750m
+        memory: 768Mi
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 8
+      targetCPUUtilizationPercentage: 70
+
+  payments:
+    enabled: true
+    kind: api
+    name: payments-api
+    image:
+      repository: quickbite-payments-api
+    replicas: 2
+    port: 8080
+    kafkaClientId: quickbite-payments-api
+    kafkaProducer: QuickBite.Payments.Api
+    resources:
+      requests:
+        cpu: 150m
+        memory: 384Mi
+      limits:
+        cpu: 750m
+        memory: 768Mi
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 8
+      targetCPUUtilizationPercentage: 70
+
+  delivery:
+    enabled: true
+    kind: api
+    name: delivery-api
+    image:
+      repository: quickbite-delivery-api
+    replicas: 2
+    port: 8080
+    kafkaClientId: quickbite-delivery-api
+    kafkaProducer: QuickBite.Delivery.Api
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 70
+
+  gateway:
+    enabled: true
+    kind: gateway
+    name: gateway
+    image:
+      repository: quickbite-gateway
+    replicas: 2
+    port: 8080
+    allowedOrigins:
+      - https://staging.quickbite.example.com
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 6
+      targetCPUUtilizationPercentage: 70
+
+  web:
+    enabled: true
+    kind: web
+    name: web
+    image:
+      repository: quickbite-web
+    replicas: 2
+    port: 80
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 250m
+        memory: 128Mi
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 4
+      targetCPUUtilizationPercentage: 70

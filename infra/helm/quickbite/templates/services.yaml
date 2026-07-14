@@ -1,0 +1,20 @@
+{{- range $key, $component := .Values.components }}
+{{- if $component.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "quickbite.componentName" (dict "root" $ "component" $component) }}
+  namespace: {{ $.Values.namespace.name }}
+  labels:
+    {{- include "quickbite.componentLabels" (dict "root" $ "component" $component) | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "quickbite.selectorLabels" (dict "root" $ "component" $component) | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ $component.port }}
+      targetPort: http
+{{- end }}
+{{- end }}

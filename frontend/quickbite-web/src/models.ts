@@ -46,6 +46,23 @@ export interface Order {
   items: OrderItem[];
 }
 
+export interface Payment {
+  id: string;
+  orderId: string;
+  amount: number;
+  status: string;
+  failureReason?: string | null;
+}
+
+export interface Delivery {
+  id: string;
+  orderId: string;
+  status: string;
+  courierId: string;
+  courierName: string;
+  courierPhoneNumber: string;
+}
+
 export interface AuthUser {
   id: string;
   email: string;

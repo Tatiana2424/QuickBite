@@ -34,11 +34,26 @@ vi.mock("../src/services/quickbiteService", () => ({
   getOrder: vi.fn().mockResolvedValue({
     id: "order-1",
     userId: "user-1",
-    status: "Created",
+    status: "Confirmed",
     totalAmount: 12.5,
     createdAtUtc: "2026-07-14T12:00:00Z",
-    items: []
+    items: [
+      {
+        menuItemId: "menu-item-1",
+        name: "Harvest Bowl",
+        quantity: 2,
+        unitPrice: 6.25
+      }
+    ]
   }),
+  getPaymentForOrder: vi.fn().mockResolvedValue({
+    id: "payment-1",
+    orderId: "order-1",
+    amount: 12.5,
+    status: "Succeeded",
+    failureReason: null
+  }),
+  getDeliveryForOrder: vi.fn().mockResolvedValue(null),
   getMyOrders: vi.fn().mockResolvedValue([
     {
       id: "order-1",
@@ -172,6 +187,16 @@ describe("QuickBite app shell", () => {
         }
       ]
     }));
+  });
+
+  it("shows payment status and pending delivery on order details", async () => {
+    seedSession();
+    renderApp("/orders/order-1");
+
+    expect(await screen.findByRole("heading", { name: "Order order-1" })).toBeTruthy();
+    expect(await screen.findByText("Succeeded")).toBeTruthy();
+    expect(await screen.findByText("Delivery will be assigned after payment confirmation.")).toBeTruthy();
+    expect(screen.getByText("2 x Harvest Bowl")).toBeTruthy();
   });
 
   it("prefills the login form with the seeded customer account", async () => {

@@ -12,12 +12,18 @@ namespace QuickBite.Orders.Api.Controllers;
 [Route("api/orders")]
 public sealed class OrdersController(IOrderService orderService) : ControllerBase
 {
+    [Authorize]
     [HttpPost]
     public async Task<ActionResult<OrderDto>> Create(
-        [FromBody] CreateOrderRequest request,
-        [FromServices] IValidator<CreateOrderRequest> validator,
+        [FromBody] CustomerCreateOrderRequest request,
+        [FromServices] IValidator<CustomerCreateOrderRequest> validator,
         CancellationToken cancellationToken)
     {
+        if (!TryGetCurrentUserId(out var userId))
+        {
+            return this.UnauthorizedProblem("The current access token does not include a user id.");
+        }
+
         var validationResult = await validator.ValidateAsync(request, cancellationToken);
         if (!validationResult.IsValid)
         {
@@ -28,7 +34,10 @@ public sealed class OrdersController(IOrderService orderService) : ControllerBas
             ? values.ToString()
             : request.IdempotencyKey;
 
-        var order = await orderService.CreateAsync(request with { IdempotencyKey = idempotencyKey }, cancellationToken);
+        var order = await orderService.CreateAsync(
+            new CreateOrderRequest(userId, request.Items, idempotencyKey),
+            cancellationToken);
+
         return CreatedAtAction(nameof(GetById), new { id = order.Id }, order);
     }
 
@@ -98,11 +107,10 @@ public sealed class OrdersController(IOrderService orderService) : ControllerBas
     }
 }
 
-public sealed class CreateOrderRequestValidator : AbstractValidator<CreateOrderRequest>
+public sealed class CustomerCreateOrderRequestValidator : AbstractValidator<CustomerCreateOrderRequest>
 {
-    public CreateOrderRequestValidator()
+    public CustomerCreateOrderRequestValidator()
     {
-        RuleFor(x => x.UserId).NotEmpty();
         RuleFor(x => x.Items).NotEmpty();
         RuleFor(x => x.IdempotencyKey).MaximumLength(120);
         RuleForEach(x => x.Items).SetValidator(new CreateOrderItemRequestValidator());

@@ -16,7 +16,7 @@ builder.ConfigureQuickBiteObservability("QuickBite.Orders.Api");
 builder.Services.AddOrdersInfrastructure(builder.Configuration);
 builder.Services.AddQuickBiteApiDefaults();
 builder.Services.AddFluentValidationAutoValidation();
-builder.Services.AddScoped<IValidator<CreateOrderRequest>, CreateOrderRequestValidator>();
+builder.Services.AddScoped<IValidator<CustomerCreateOrderRequest>, CustomerCreateOrderRequestValidator>();
 builder.Services.AddHealthChecks()
     .AddQuickBiteDbContextReadiness<OrdersDbContext>("orders-db");
 builder.Services.AddEndpointsApiExplorer();

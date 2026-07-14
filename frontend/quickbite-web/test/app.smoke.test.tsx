@@ -113,7 +113,7 @@ describe("QuickBite app shell", () => {
     renderApp("/");
 
     expect(screen.getByRole("link", { name: "Restaurants" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Orders" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "My orders" })).toBeTruthy();
     expect(await screen.findByText("Urban Bowl")).toBeTruthy();
   });
 
@@ -122,7 +122,7 @@ describe("QuickBite app shell", () => {
     seedSession();
     renderApp("/");
 
-    await user.click(screen.getByRole("link", { name: "Orders" }));
+    await user.click(screen.getByRole("link", { name: "My orders" }));
 
     expect(await screen.findByRole("heading", { name: "My Orders" })).toBeTruthy();
     expect(screen.getByText("2 x Harvest Bowl")).toBeTruthy();
@@ -131,7 +131,7 @@ describe("QuickBite app shell", () => {
   it("guards order routes until the user signs in", async () => {
     renderApp("/orders");
 
-    expect(await screen.findByRole("heading", { name: "Sign in to QuickBite" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Sign in to order faster" })).toBeTruthy();
   });
 
   it("lets anonymous users navigate from login to account creation", async () => {
@@ -170,7 +170,6 @@ describe("QuickBite app shell", () => {
 
     expect(await screen.findByRole("heading", { name: "Order order-1" })).toBeTruthy();
     expect(createOrder).toHaveBeenCalledWith(expect.objectContaining({
-      userId: "user-1",
       items: [
         {
           menuItemId: "menu-item-1",

@@ -38,9 +38,9 @@ export function LoginPage() {
 
   return (
     <section className="panel">
-      <p className="eyebrow">Identity</p>
-      <h2>Sign in to QuickBite</h2>
-      <p className="muted">Use the seeded customer account or create a new account.</p>
+      <p className="eyebrow">Welcome back</p>
+      <h2>Sign in to order faster</h2>
+      <p className="muted">Use the demo customer account or your own QuickBite account.</p>
       <form className="stack" onSubmit={handleSubmit}>
         <label>
           Email

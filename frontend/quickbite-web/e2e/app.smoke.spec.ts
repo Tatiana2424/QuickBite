@@ -73,6 +73,9 @@ test.beforeEach(async ({ page }) => {
       return;
     }
 
+    const requestBody = route.request().postDataJSON() as Record<string, unknown>;
+    expect(requestBody.userId).toBeUndefined();
+
     await route.fulfill({
       json: {
         id: "order-1",
@@ -138,14 +141,14 @@ test.beforeEach(async ({ page }) => {
 test("loads restaurants through the gateway contract", async ({ page }) => {
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { name: "Restaurants" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Choose dinner in a few taps" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Urban Bowl" })).toBeVisible();
 });
 
 test("guards orders and returns after login", async ({ page }) => {
   await page.goto("/orders");
 
-  await expect(page.getByRole("heading", { name: "Sign in to QuickBite" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Sign in to order faster" })).toBeVisible();
   await page.getByRole("button", { name: "Sign in" }).click();
 
   await expect(page.getByRole("heading", { name: "My Orders" })).toBeVisible();

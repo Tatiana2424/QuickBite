@@ -158,6 +158,7 @@ Security details are documented in `docs/security-baseline.md`.
 Observability details are documented in `docs/observability.md`.
 Testing and CI quality gates are documented in `docs/testing-strategy.md`.
 Frontend hardening details are documented in `docs/frontend-production-readiness.md`.
+Release automation and promotion details are documented in `docs/release-management.md`.
 
 ## Current status
 

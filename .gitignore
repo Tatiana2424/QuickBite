@@ -13,6 +13,7 @@ dist/
 .env.local
 .env.*.local
 coverage/
+artifacts/
 TestResults/
 test-results/
 playwright-report/

@@ -14,4 +14,20 @@ public sealed class QualityGatePolicyTests
         Assert.Contains("docker compose", workflow, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("XPlat Code Coverage", workflow, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Repository_has_release_workflow_for_images_migrations_scanning_and_promotion()
+    {
+        var workflow = File.ReadAllText(RepositoryPaths.File(".github", "workflows", "release.yml"));
+
+        Assert.Contains("docker/build-push-action", workflow, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("ghcr.io", workflow, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("dotnet ef migrations bundle", workflow, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("aquasecurity/trivy-action", workflow, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("dependency-scan", workflow, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("environment:", workflow, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("staging", workflow, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("production", workflow, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("type=sha", workflow, StringComparison.OrdinalIgnoreCase);
+    }
 }

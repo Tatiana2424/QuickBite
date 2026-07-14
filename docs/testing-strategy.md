@@ -9,6 +9,7 @@ QuickBite uses automated quality gates to keep the microservices starter safe to
 - Frontend Vitest smoke tests protect the React shell, routing, auth storage, API error handling, and gateway service integration seams.
 - Playwright E2E smoke tests protect browser-level catalog loading and the protected login-to-orders journey.
 - Docker Compose configuration validation protects service names, networks, environment wiring, and local orchestration syntax.
+- Release workflow tests protect container publishing, image scanning, migration-bundle generation, and staging/production promotion gates.
 - Future integration tests should exercise APIs with SQL Server and Kafka through Docker Compose once the workflows are stable enough to run repeatably in CI.
 
 ## Local Commands

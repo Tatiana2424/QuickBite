@@ -3,6 +3,11 @@ export interface RestaurantSummary {
   name: string;
   cuisine: string;
   description: string;
+  imageUrl?: string | null;
+  rating: number;
+  estimatedDeliveryMinutes: number;
+  deliveryFee: number;
+  minimumOrder: number;
 }
 
 export interface MenuItem {
@@ -50,6 +55,12 @@ export interface DeliveryAddress {
   state: string;
   postalCode: string;
   country: string;
+}
+
+export interface SavedAddress extends DeliveryAddress {
+  id: string;
+  label: string;
+  isDefault: boolean;
 }
 
 export interface CreateOrderRequest {

@@ -31,6 +31,12 @@ export function RestaurantDetailsPage() {
           <p className="eyebrow">{restaurantQuery.data.cuisine}</p>
           <h2>{restaurantQuery.data.name}</h2>
           <p>{restaurantQuery.data.description}</p>
+          <div className="restaurant-card__stats" aria-label={`${restaurantQuery.data.name} delivery details`}>
+            <span>{(restaurantQuery.data.rating ?? 4.6).toFixed(1)} stars</span>
+            <span>{restaurantQuery.data.estimatedDeliveryMinutes ?? 30} min</span>
+            <span>{!restaurantQuery.data.deliveryFee ? "Free delivery" : `$${restaurantQuery.data.deliveryFee.toFixed(2)} delivery`}</span>
+            <span>${(restaurantQuery.data.minimumOrder ?? 15).toFixed(0)} minimum</span>
+          </div>
         </div>
         <button
           type="button"

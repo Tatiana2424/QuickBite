@@ -17,19 +17,34 @@ test.beforeEach(async ({ page }) => {
           id: "restaurant-1",
           name: "Urban Bowl",
           cuisine: "Healthy",
-          description: "Balanced bowls and fresh wraps."
+          description: "Balanced bowls and fresh wraps.",
+          imageUrl: null,
+          rating: 4.8,
+          estimatedDeliveryMinutes: 25,
+          deliveryFee: 0,
+          minimumOrder: 12
         },
         {
           id: "restaurant-2",
           name: "Pizza Port",
           cuisine: "Italian",
-          description: "Stone baked pizzas and sides."
+          description: "Stone baked pizzas and sides.",
+          imageUrl: null,
+          rating: 4.5,
+          estimatedDeliveryMinutes: 35,
+          deliveryFee: 2.49,
+          minimumOrder: 15
         },
         {
           id: "restaurant-3",
           name: "Taco Lane",
           cuisine: "Mexican",
-          description: "Street tacos, bowls, and bright salsas."
+          description: "Street tacos, bowls, and bright salsas.",
+          imageUrl: null,
+          rating: 4.6,
+          estimatedDeliveryMinutes: 30,
+          deliveryFee: 1.99,
+          minimumOrder: 10
         }
       ]
     });
@@ -87,6 +102,11 @@ test.beforeEach(async ({ page }) => {
         name: "Urban Bowl",
         cuisine: "Healthy",
         description: "Balanced bowls and fresh wraps.",
+        imageUrl: null,
+        rating: 4.8,
+        estimatedDeliveryMinutes: 25,
+        deliveryFee: 0,
+        minimumOrder: 12,
         menuItems: [
           {
             id: "menu-item-1",
@@ -97,6 +117,35 @@ test.beforeEach(async ({ page }) => {
           }
         ]
       }
+    });
+  });
+
+  await page.route("**/identity/api/account/addresses", async (route) => {
+    if (route.request().method() === "POST") {
+      const requestBody = route.request().postDataJSON() as Record<string, unknown>;
+      await route.fulfill({
+        json: {
+          id: "address-2",
+          ...requestBody
+        }
+      });
+      return;
+    }
+
+    await route.fulfill({
+      json: [
+        {
+          id: "address-1",
+          label: "Home",
+          line1: "123 Market Street",
+          line2: null,
+          city: "Seattle",
+          state: "WA",
+          postalCode: "98101",
+          country: "USA",
+          isDefault: true
+        }
+      ]
     });
   });
 
@@ -213,6 +262,16 @@ test("shows restaurant catalog content separately from home", async ({ page }) =
   await expect(page.getByRole("heading", { name: "Browse restaurants" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Order something good without the guesswork." })).toHaveCount(0);
   await expect(page.getByRole("region", { name: "All restaurants" })).toBeVisible();
+  await expect(page.getByText("4.8 stars").first()).toBeVisible();
+  await expect(page.getByText("25 min").first()).toBeVisible();
+});
+
+test("shows customer support guidance", async ({ page }) => {
+  await page.goto("/support");
+
+  await expect(page.getByRole("heading", { name: "How can we help?" })).toBeVisible();
+  await expect(page.getByText("Payment failed or is still processing")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Email support" })).toBeVisible();
 });
 
 test("filters restaurant discovery by search and cuisine", async ({ page }) => {
@@ -305,6 +364,7 @@ test("lets signed-in customers add menu items and checkout from a dedicated page
   await page.getByRole("button", { name: "Continue checkout" }).click();
 
   await expect(page.getByRole("heading", { name: "Checkout" })).toBeVisible();
+  await expect(page.getByLabel("Saved address")).toBeVisible();
   await expect(page.getByLabel("Checkout order summary")).toContainText("$12.50");
   await page.getByRole("button", { name: "Place order" }).click();
 

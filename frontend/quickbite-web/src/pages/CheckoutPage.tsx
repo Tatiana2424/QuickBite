@@ -1,10 +1,10 @@
-import { useMutation } from "@tanstack/react-query";
-import { FormEvent, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../cart/CartContext";
 import { EmptyState, ErrorState } from "../components/AsyncState";
 import type { DeliveryAddress } from "../models";
-import { createOrder } from "../services/quickbiteService";
+import { createOrder, createSavedAddress, getSavedAddresses } from "../services/quickbiteService";
 
 const defaultDeliveryAddress: DeliveryAddress = {
   line1: "123 Market Street",
@@ -17,25 +17,55 @@ const defaultDeliveryAddress: DeliveryAddress = {
 
 export function CheckoutPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { items, itemCount, totalAmount, clearCart } = useCart();
   const [deliveryAddress, setDeliveryAddress] = useState<DeliveryAddress>(defaultDeliveryAddress);
+  const [selectedAddressId, setSelectedAddressId] = useState("new");
+  const [saveAddress, setSaveAddress] = useState(false);
+  const [addressLabel, setAddressLabel] = useState("Home");
+  const savedAddressesQuery = useQuery({
+    queryKey: ["saved-addresses"],
+    queryFn: getSavedAddresses
+  });
+  const savedAddresses = savedAddressesQuery.data ?? [];
   const checkoutMutation = useMutation({
-    mutationFn: () =>
-      createOrder({
+    mutationFn: async () => {
+      const normalizedAddress = normalizeAddress(deliveryAddress);
+      if (selectedAddressId === "new" && saveAddress) {
+        await createSavedAddress({
+          ...normalizedAddress,
+          label: addressLabel.trim() || "Delivery address",
+          isDefault: savedAddresses.length === 0
+        });
+        await queryClient.invalidateQueries({ queryKey: ["saved-addresses"] });
+      }
+
+      return createOrder({
         idempotencyKey: createIdempotencyKey(),
-        deliveryAddress: normalizeAddress(deliveryAddress),
+        deliveryAddress: normalizedAddress,
         items: items.map((item) => ({
           menuItemId: item.menuItemId,
           name: item.name,
           quantity: item.quantity,
           unitPrice: item.unitPrice
         }))
-      }),
+      });
+    },
     onSuccess: (order) => {
       clearCart();
       navigate(`/orders/${order.id}`);
     }
   });
+
+  useEffect(() => {
+    if (selectedAddressId !== "new" || savedAddresses.length === 0) {
+      return;
+    }
+
+    const defaultAddress = savedAddresses.find((address) => address.isDefault) ?? savedAddresses[0];
+    setSelectedAddressId(defaultAddress.id);
+    setDeliveryAddress(toDeliveryAddress(defaultAddress));
+  }, [savedAddresses, selectedAddressId]);
 
   function handleCheckout(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -70,6 +100,30 @@ export function CheckoutPage() {
             <p className="eyebrow">Delivery</p>
             <h2>Where should we bring it?</h2>
           </div>
+          {savedAddresses.length > 0 && (
+            <label>
+              Saved address
+              <select
+                value={selectedAddressId}
+                onChange={(event) => {
+                  const nextAddressId = event.target.value;
+                  setSelectedAddressId(nextAddressId);
+                  const selectedAddress = savedAddresses.find((address) => address.id === nextAddressId);
+                  if (selectedAddress) {
+                    setDeliveryAddress(toDeliveryAddress(selectedAddress));
+                    setSaveAddress(false);
+                  }
+                }}
+              >
+                {savedAddresses.map((address) => (
+                  <option key={address.id} value={address.id}>
+                    {address.label}{address.isDefault ? " (default)" : ""} - {address.line1}
+                  </option>
+                ))}
+                <option value="new">Use a new address</option>
+              </select>
+            </label>
+          )}
           <label>
             Street address
             <input
@@ -133,6 +187,33 @@ export function CheckoutPage() {
               />
             </label>
           </div>
+          {selectedAddressId === "new" && (
+            <div className="save-address-options">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={saveAddress}
+                  onChange={(event) => setSaveAddress(event.target.checked)}
+                />
+                Save this address for next time
+              </label>
+              {saveAddress && (
+                <label>
+                  Address label
+                  <input
+                    name="addressLabel"
+                    value={addressLabel}
+                    onChange={(event) => setAddressLabel(event.target.value)}
+                    required
+                    maxLength={80}
+                  />
+                </label>
+              )}
+            </div>
+          )}
+          {savedAddressesQuery.isError && (
+            <p className="muted">Saved addresses are unavailable right now. You can still enter a delivery address.</p>
+          )}
           <button type="submit" disabled={checkoutMutation.isPending}>
             {checkoutMutation.isPending ? "Placing order..." : "Place order"}
           </button>
@@ -163,6 +244,17 @@ export function CheckoutPage() {
       </div>
     </section>
   );
+}
+
+function toDeliveryAddress(address: DeliveryAddress): DeliveryAddress {
+  return {
+    line1: address.line1,
+    line2: address.line2 ?? "",
+    city: address.city,
+    state: address.state,
+    postalCode: address.postalCode,
+    country: address.country
+  };
 }
 
 function normalizeAddress(address: DeliveryAddress): DeliveryAddress {

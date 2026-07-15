@@ -4,6 +4,7 @@ public sealed class ApiSurfaceContractTests
 {
     [Theory]
     [InlineData("Identity", "AuthController.cs", "[Route(\"api/auth\")]", "[HttpPost(\"register\")]", "[HttpPost(\"login\")]")]
+    [InlineData("Identity", "AccountController.cs", "[Route(\"api/account\")]", "[HttpGet(\"addresses\")]", "[HttpPost(\"addresses\")]", "[HttpPut(\"addresses/{addressId:guid}\")]", "[HttpDelete(\"addresses/{addressId:guid}\")]")]
     [InlineData("Catalog", "RestaurantsController.cs", "[Route(\"api/restaurants\")]", "[HttpGet]", "[HttpGet(\"{id:guid}/menu\")]")]
     [InlineData("Orders", "OrdersController.cs", "[Route(\"api/orders\")]", "[HttpPost]", "[HttpGet]", "[HttpGet(\"my\")]", "[HttpGet(\"my/{id:guid}\")]", "[HttpGet(\"{id:guid}\")]")]
     [InlineData("Payments", "PaymentsController.cs", "[Route(\"api/payments\")]", "[HttpGet(\"{orderId:guid}\")]")]

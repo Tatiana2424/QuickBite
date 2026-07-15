@@ -13,7 +13,8 @@ import type {
   Payment,
   RestaurantDetails,
   RestaurantMutationRequest,
-  RestaurantSummary
+  RestaurantSummary,
+  SavedAddress
 } from "../models";
 
 export async function getRestaurants(): Promise<RestaurantSummary[]> {
@@ -106,6 +107,25 @@ export async function createOrder(request: CreateOrderRequest): Promise<Order> {
     headers: request.idempotencyKey ? { "Idempotency-Key": request.idempotencyKey } : undefined
   });
   return response.data;
+}
+
+export async function getSavedAddresses(): Promise<SavedAddress[]> {
+  const response = await apiClient.get<SavedAddress[]>("/identity/api/account/addresses");
+  return response.data;
+}
+
+export async function createSavedAddress(request: Omit<SavedAddress, "id">): Promise<SavedAddress> {
+  const response = await apiClient.post<SavedAddress>("/identity/api/account/addresses", request);
+  return response.data;
+}
+
+export async function updateSavedAddress(addressId: string, request: Omit<SavedAddress, "id">): Promise<SavedAddress> {
+  const response = await apiClient.put<SavedAddress>(`/identity/api/account/addresses/${addressId}`, request);
+  return response.data;
+}
+
+export async function deleteSavedAddress(addressId: string): Promise<void> {
+  await apiClient.delete(`/identity/api/account/addresses/${addressId}`);
 }
 
 export async function login(email: string, password: string): Promise<AuthResponse> {

@@ -77,6 +77,14 @@ export function OrderDetailsPage() {
         </div>
       </div>
       <OrderProgressTimeline order={order} payment={paymentQuery.data} delivery={deliveryQuery.data} />
+      <section className="panel support-inline" aria-label="Order help">
+        <div>
+          <p className="eyebrow">Need help?</p>
+          <h2>Payment or delivery status unclear?</h2>
+          <p className="muted">Open support for calm next steps. Include order {order.id.slice(0, 8)} if you email us.</p>
+        </div>
+        <Link className="button-link" to="/support">Get order help</Link>
+      </section>
       <div className="lifecycle-grid">
         <LifecycleCard title="Order" status={order.status}>
           <p>Total: ${order.totalAmount.toFixed(2)}</p>
@@ -143,6 +151,7 @@ function PaymentLifecycleCard({
       {payment.status === "Failed" && (
         <p className="muted">
           {payment.failureReason ?? "Payment failed."} Try placing the order again or use a different payment method when payments are connected.
+          If you are unsure what happened, open support and include this order id.
         </p>
       )}
     </LifecycleCard>
@@ -163,7 +172,7 @@ function DeliveryLifecycleCard({
   }
 
   if (error) {
-    return <LifecycleCard title="Delivery" status="Unavailable">Delivery status could not be loaded. Refresh again shortly.</LifecycleCard>;
+    return <LifecycleCard title="Delivery" status="Unavailable">Delivery status could not be loaded. Refresh again shortly, or open support if it stays unavailable.</LifecycleCard>;
   }
 
   if (!delivery) {

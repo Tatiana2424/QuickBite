@@ -15,6 +15,7 @@ import { RegisterPage } from "./pages/RegisterPage";
 import { RestaurantAdminPage } from "./pages/RestaurantAdminPage";
 import { RestaurantDetailsPage } from "./pages/RestaurantDetailsPage";
 import { RestaurantsPage } from "./pages/RestaurantsPage";
+import { SupportPage } from "./pages/SupportPage";
 
 export function App() {
   return (
@@ -140,6 +141,7 @@ function AppShell() {
           />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/support" element={<SupportPage />} />
         </Routes>
       </main>
       <Footer isAuthenticated={isAuthenticated} />
@@ -165,7 +167,7 @@ function Footer({ isAuthenticated }: { isAuthenticated: boolean }) {
         {!isAuthenticated && <Link to="/register">Create account</Link>}
       </nav>
       <nav className="footer-links footer-links--support" aria-label="Support links">
-        <a href="mailto:support@quickbite.local">Support</a>
+        <Link to="/support">Support</Link>
         <a href="mailto:partners@quickbite.local">Contact</a>
         <a href="#privacy">Privacy</a>
         <a href="#terms">Terms</a>

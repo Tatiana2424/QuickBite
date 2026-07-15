@@ -3,12 +3,14 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { useCart } from "../cart/CartContext";
 import { ErrorState, LoadingState } from "../components/AsyncState";
+import { useFavoriteRestaurants } from "../favorites/useFavoriteRestaurants";
 import type { RestaurantSummary } from "../models";
 import { getMyOrders, getRestaurants } from "../services/quickbiteService";
 
 export function HomePage() {
   const { isAuthenticated, user } = useAuth();
   const { itemCount, totalAmount } = useCart();
+  const { favoriteRestaurantIds, isFavorite, toggleFavorite } = useFavoriteRestaurants();
   const restaurantsQuery = useQuery({
     queryKey: ["restaurants"],
     queryFn: getRestaurants
@@ -21,6 +23,9 @@ export function HomePage() {
 
   const restaurants = restaurantsQuery.data ?? [];
   const featuredRestaurants = restaurants.slice(0, 4);
+  const favoriteRestaurants = favoriteRestaurantIds
+    .map((restaurantId) => restaurants.find((restaurant) => restaurant.id === restaurantId))
+    .filter((restaurant): restaurant is RestaurantSummary => Boolean(restaurant));
   const cuisines = Array.from(new Set(restaurants.map((restaurant) => restaurant.cuisine))).slice(0, 8);
   const recentOrder = ordersQuery.data?.[0];
 
@@ -73,10 +78,36 @@ export function HomePage() {
             </div>
             <div className="featured-grid">
               {featuredRestaurants.map((restaurant, index) => (
-                <HomeRestaurantCard key={restaurant.id} restaurant={restaurant} featuredRank={index + 1} />
+                <HomeRestaurantCard
+                  key={restaurant.id}
+                  restaurant={restaurant}
+                  featuredRank={index + 1}
+                  isFavorite={isFavorite(restaurant.id)}
+                  onToggleFavorite={() => toggleFavorite(restaurant.id)}
+                />
               ))}
             </div>
           </section>
+
+          {favoriteRestaurants.length > 0 && (
+            <section className="panel favorites-panel" aria-label="Favorite restaurants">
+              <div className="section-heading section-heading--row">
+                <div>
+                  <p className="eyebrow">Favorites</p>
+                  <h2>Restaurants you saved</h2>
+                </div>
+                <Link className="text-link" to="/restaurants">Manage favorites</Link>
+              </div>
+              <div className="favorite-list">
+                {favoriteRestaurants.slice(0, 4).map((restaurant) => (
+                  <Link key={restaurant.id} className="favorite-pill" to={`/restaurants/${restaurant.id}`}>
+                    <span>{restaurant.name}</span>
+                    <small>{restaurant.cuisine}</small>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
 
           <section className="panel cuisine-shortcuts" aria-label="Cuisine shortcuts">
             <div className="section-heading">
@@ -134,19 +165,33 @@ function QuickAction({ title, copy, to }: { title: string; copy: string; to: str
 
 function HomeRestaurantCard({
   restaurant,
-  featuredRank
+  featuredRank,
+  isFavorite,
+  onToggleFavorite
 }: {
   restaurant: RestaurantSummary;
   featuredRank: number;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
 }) {
   return (
-    <Link to={`/restaurants/${restaurant.id}`} className="card restaurant-card">
+    <article className="card restaurant-card">
       <div className="restaurant-card__meta">
         <span className="cuisine-chip">{restaurant.cuisine}</span>
         <span className="rank-chip">#{featuredRank}</span>
       </div>
-      <strong>{restaurant.name}</strong>
+      <Link to={`/restaurants/${restaurant.id}`} className="restaurant-card__link">
+        <strong>{restaurant.name}</strong>
+      </Link>
       <p>{restaurant.description}</p>
-    </Link>
+      <button
+        type="button"
+        className="button-secondary favorite-button"
+        aria-pressed={isFavorite}
+        onClick={onToggleFavorite}
+      >
+        {isFavorite ? "Saved favorite" : "Save favorite"}
+      </button>
+    </article>
   );
 }

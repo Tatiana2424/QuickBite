@@ -1,5 +1,5 @@
 import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from "react";
-import type { MenuItem } from "../models";
+import type { MenuItem, OrderItem } from "../models";
 
 const cartStorageKey = "quickbite.cart";
 
@@ -16,6 +16,7 @@ interface CartContextValue {
   itemCount: number;
   totalAmount: number;
   addItem: (item: MenuItem) => void;
+  replaceItems: (items: OrderItem[], sourceId?: string) => void;
   setQuantity: (menuItemId: string, quantity: number) => void;
   removeItem: (menuItemId: string) => void;
   clearCart: () => void;
@@ -58,6 +59,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
             }
           ];
         });
+      },
+      replaceItems: (orderItems, sourceId = "reorder") => {
+        setItems(orderItems.map((item) => ({
+          menuItemId: item.menuItemId,
+          restaurantId: `reorder-${sourceId}`,
+          name: item.name,
+          unitPrice: item.unitPrice,
+          quantity: item.quantity
+        })));
       },
       setQuantity: (menuItemId, quantity) => {
         setItems((currentItems) =>

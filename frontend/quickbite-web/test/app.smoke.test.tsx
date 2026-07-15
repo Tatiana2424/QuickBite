@@ -264,9 +264,10 @@ describe("QuickBite app shell", () => {
 
     const footer = screen.getByRole("contentinfo");
     expect(within(footer).getByLabelText("QuickBite footer").textContent).toContain("Order dinner");
-    expect(within(footer).getByRole("navigation", { name: "Footer navigation" })).toBeTruthy();
-    expect(within(footer).getByRole("navigation", { name: "Support links" })).toBeTruthy();
+    expect(within(footer).getByRole("navigation", { name: "Explore links" })).toBeTruthy();
+    expect(within(footer).getByRole("navigation", { name: "Help links" })).toBeTruthy();
     expect(within(footer).getByRole("link", { name: "Create account" })).toBeTruthy();
+    expect(within(footer).getByRole("link", { name: "Open support" })).toBeTruthy();
   });
 
   it("keeps the restaurants page focused on catalog search and filters", async () => {

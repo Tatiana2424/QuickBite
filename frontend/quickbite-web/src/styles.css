@@ -132,36 +132,58 @@ label {
 
 .brand-mark {
   position: relative;
-  width: 3rem;
-  height: 3rem;
+  width: 3.25rem;
+  height: 3.25rem;
   flex: 0 0 auto;
   display: inline-grid;
   place-items: center;
-  overflow: hidden;
-  border-radius: 14px;
-  background:
-    radial-gradient(circle at 72% 28%, rgba(249, 115, 22, 0.95) 0 10%, transparent 11%),
-    linear-gradient(135deg, #0f513f 0%, #0b6b57 58%, #12b886 100%);
-  color: white;
-  box-shadow: 0 12px 26px rgba(11, 107, 87, 0.22);
+  border: 1px solid rgba(232, 89, 12, 0.18);
+  border-radius: 17px;
+  background: #fffaf4;
+  box-shadow: 0 14px 30px rgba(232, 89, 12, 0.16);
 }
 
-.brand-mark__letter {
-  position: relative;
-  z-index: 1;
-  font-size: 1.45rem;
-  font-weight: 900;
-  line-height: 1;
+.brand-mark svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
-.brand-mark__bite {
-  position: absolute;
-  right: 0.46rem;
-  top: 0.48rem;
-  width: 0.46rem;
-  height: 0.46rem;
-  border-radius: 999px;
-  background: #fff7ed;
+.brand-mark__plate {
+  fill: #fffaf4;
+  stroke: #fed7aa;
+  stroke-width: 2;
+}
+
+.brand-mark__speed,
+.brand-mark__leaf-vein {
+  fill: none;
+  stroke: #0b6b57;
+  stroke-linecap: round;
+  stroke-width: 2.4;
+}
+
+.brand-mark__q-ring,
+.brand-mark__q-tail {
+  fill: none;
+  stroke: #f97316;
+  stroke-linecap: round;
+  stroke-width: 7;
+}
+
+.brand-mark__cloche {
+  fill: none;
+  stroke: #18212f;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3.1;
+}
+
+.brand-mark__leaf {
+  fill: #22c55e;
+  stroke: #0b6b57;
+  stroke-linejoin: round;
+  stroke-width: 1.4;
 }
 
 .mobile-menu-button {

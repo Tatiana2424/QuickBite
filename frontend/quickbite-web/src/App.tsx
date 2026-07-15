@@ -155,8 +155,15 @@ function AppShell() {
 function BrandMark() {
   return (
     <Link to="/" className="brand-mark" aria-label="QuickBite home">
-      <span className="brand-mark__letter">Q</span>
-      <span className="brand-mark__bite" aria-hidden="true" />
+      <svg viewBox="0 0 64 64" role="img" aria-hidden="true" focusable="false">
+        <circle className="brand-mark__plate" cx="32" cy="32" r="28" />
+        <path className="brand-mark__speed" d="M12 25c-3 1-5 3-6 5M14 18c-4 1-7 3-9 6" />
+        <circle className="brand-mark__q-ring" cx="29" cy="32" r="15" />
+        <path className="brand-mark__q-tail" d="M39 42l9 9" />
+        <path className="brand-mark__cloche" d="M19 41h24M23 38c2-9 15-10 18 0M32 27v-5M28 22h8" />
+        <path className="brand-mark__leaf" d="M45 25c7-5 11-2 10 5-6 2-10 1-10-5Z" />
+        <path className="brand-mark__leaf-vein" d="M46 28c3-1 5-2 8-4" />
+      </svg>
     </Link>
   );
 }

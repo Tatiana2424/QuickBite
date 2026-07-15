@@ -6,6 +6,7 @@ import { CartProvider, useCart } from "./cart/CartContext";
 import { AccountPage } from "./pages/AccountPage";
 import { CartPage } from "./pages/CartPage";
 import { CourierDeliveriesPage } from "./pages/CourierDeliveriesPage";
+import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { OrderDetailsPage } from "./pages/OrderDetailsPage";
 import { OrdersPage } from "./pages/OrdersPage";
@@ -84,7 +85,7 @@ function AppShell() {
       </header>
       <main className="content">
         <Routes>
-          <Route path="/" element={<RestaurantsPage />} />
+          <Route path="/" element={<HomePage />} />
           <Route path="/restaurants" element={<RestaurantsPage />} />
           <Route path="/restaurants/:restaurantId" element={<RestaurantDetailsPage />} />
           <Route path="/cart" element={<CartPage />} />

@@ -196,15 +196,24 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test("loads restaurants through the gateway contract", async ({ page }) => {
+test("loads the customer home page through the gateway contract", async ({ page }) => {
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { name: "Find the right meal, then checkout fast." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Order something good without the guesswork." })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Browse restaurants" })).toBeVisible();
   await expect(page.getByRole("link", { name: /Urban Bowl/ }).first()).toBeVisible();
 });
 
+test("shows restaurant catalog content separately from home", async ({ page }) => {
+  await page.goto("/restaurants");
+
+  await expect(page.getByRole("heading", { name: "Browse restaurants" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Order something good without the guesswork." })).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "All restaurants" })).toBeVisible();
+});
+
 test("filters restaurant discovery by search and cuisine", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/restaurants");
 
   const discovery = page.getByRole("region", { name: "All restaurants" });
   await expect(discovery.getByRole("link", { name: /Urban Bowl/ })).toBeVisible();
@@ -294,7 +303,7 @@ test("opens the cart route and mobile navigation", async ({ page }) => {
   await expect(menuButton).toHaveAttribute("aria-expanded", "false");
   await menuButton.click();
   await expect(menuButton).toHaveAttribute("aria-expanded", "true");
-  await page.getByRole("link", { name: "Cart" }).click();
+  await page.getByRole("link", { name: "Cart", exact: true }).click();
 
   await expect(page.getByRole("heading", { name: "Your cart" })).toBeVisible();
   await expect(page.getByText("Your cart is empty")).toBeVisible();

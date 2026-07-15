@@ -27,8 +27,12 @@ public sealed class DemoSeedDataContractTests
 
         Assert.Contains("Breakfast Club", source, StringComparison.Ordinal);
         Assert.Contains("Curry House", source, StringComparison.Ordinal);
-        Assert.True(CountOccurrences(source, "new MenuItem(") >= 18);
-        Assert.True(CountOccurrences(source, "new Restaurant(") >= 6);
+        Assert.Contains("Burger Forge", source, StringComparison.Ordinal);
+        Assert.Contains("Noodle House", source, StringComparison.Ordinal);
+        Assert.Contains("Green Garden", source, StringComparison.Ordinal);
+        Assert.Contains("Mediterranean Table", source, StringComparison.Ordinal);
+        Assert.True(CountOccurrences(source, "new MenuItem(") >= 36);
+        Assert.True(CountOccurrences(source, "new Restaurant(") >= 12);
     }
 
     [Fact]

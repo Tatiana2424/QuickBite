@@ -89,15 +89,15 @@ export function HomePage() {
             </div>
           </section>
 
-          {favoriteRestaurants.length > 0 && (
-            <section className="panel favorites-panel" aria-label="Favorite restaurants">
-              <div className="section-heading section-heading--row">
-                <div>
-                  <p className="eyebrow">Favorites</p>
-                  <h2>Restaurants you saved</h2>
-                </div>
-                <Link className="text-link" to="/restaurants">Manage favorites</Link>
+          <section id="favorites" className="panel favorites-panel" aria-label="Favorite restaurants">
+            <div className="section-heading section-heading--row">
+              <div>
+                <p className="eyebrow">Favorites</p>
+                <h2>Restaurants you saved</h2>
               </div>
+              <Link className="text-link" to="/restaurants">Manage favorites</Link>
+            </div>
+            {favoriteRestaurants.length > 0 ? (
               <div className="favorite-list">
                 {favoriteRestaurants.slice(0, 4).map((restaurant) => (
                   <Link key={restaurant.id} className="favorite-pill" to={`/restaurants/${restaurant.id}`}>
@@ -106,8 +106,10 @@ export function HomePage() {
                   </Link>
                 ))}
               </div>
-            </section>
-          )}
+            ) : (
+              <p className="muted">Save restaurants from the catalog and they will appear here for faster ordering.</p>
+            )}
+          </section>
 
           <section className="panel cuisine-shortcuts" aria-label="Cuisine shortcuts">
             <div className="section-heading">

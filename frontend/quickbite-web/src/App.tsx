@@ -64,6 +64,7 @@ function AppShell() {
           >
             <NavLink to="/" end>Home</NavLink>
             <NavLink to="/restaurants">Restaurants</NavLink>
+            <NavLink to="/#favorites">Favorites</NavLink>
             <NavLink to="/cart" className="cart-nav-link">
               Cart
               {itemCount > 0 && <span className="cart-badge" aria-label={`${itemCount} items in cart`}>{itemCount}</span>}
@@ -80,7 +81,7 @@ function AppShell() {
               <section className="session-card" aria-label="Signed in user">
                 <span className="session-avatar" aria-hidden="true">{getInitials(user.fullName)}</span>
                 <strong>{user.fullName}</strong>
-                <button type="button" className="button-secondary" onClick={() => void logout()}>
+                <button type="button" className="session-sign-out" onClick={() => void logout()}>
                   Sign out
                 </button>
               </section>

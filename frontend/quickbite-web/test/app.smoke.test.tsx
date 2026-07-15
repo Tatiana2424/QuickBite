@@ -252,6 +252,7 @@ describe("QuickBite app shell", () => {
     const primaryNavigation = screen.getByRole("navigation", { name: "Primary navigation" });
     expect(within(primaryNavigation).getByRole("link", { name: "Home" })).toBeTruthy();
     expect(within(primaryNavigation).getByRole("link", { name: "Restaurants" })).toBeTruthy();
+    expect(within(primaryNavigation).getByRole("link", { name: "Favorites" })).toBeTruthy();
     expect(within(primaryNavigation).getByRole("link", { name: "Cart" })).toBeTruthy();
     expect(within(primaryNavigation).getByRole("link", { name: "Orders" })).toBeTruthy();
     expect(await screen.findByRole("heading", { name: "Order something good without the guesswork." })).toBeTruthy();

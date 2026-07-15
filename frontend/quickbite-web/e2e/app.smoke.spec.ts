@@ -250,6 +250,7 @@ test("loads the customer home page through the gateway contract", async ({ page 
 
   await expect(page.getByRole("heading", { name: "Order something good without the guesswork." })).toBeVisible();
   await expect(page.getByRole("link", { name: "Browse restaurants" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "Favorites" })).toBeVisible();
   await expect(page.getByRole("link", { name: /Urban Bowl/ }).first()).toBeVisible();
   await expect(page.getByRole("contentinfo")).toContainText("Order dinner");
   await expect(page.getByRole("navigation", { name: "Explore links" })).toBeVisible();

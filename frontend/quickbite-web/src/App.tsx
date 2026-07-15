@@ -40,49 +40,52 @@ function AppShell() {
   return (
     <div className="app-shell">
       <header className="site-header">
-        <div className="brand-lockup">
-          <Link to="/" className="brand-mark" aria-label="QuickBite home">QB</Link>
-          <div>
-            <strong>QuickBite</strong>
-            <span>Fresh food, fast checkout</span>
+        <div className="site-header__inner">
+          <div className="brand-lockup">
+            <BrandMark />
+            <div>
+              <strong>QuickBite</strong>
+              <span>Fresh food, fast checkout</span>
+            </div>
           </div>
-        </div>
-        <button
-          type="button"
-          className="mobile-menu-button button-secondary"
-          aria-controls="primary-navigation"
-          aria-expanded={isMobileNavOpen}
-          onClick={() => setIsMobileNavOpen((current) => !current)}
-        >
-          Menu
-        </button>
-        <nav
-          id="primary-navigation"
-          className={isMobileNavOpen ? "primary-nav primary-nav--open" : "primary-nav"}
-          aria-label="Primary navigation"
-        >
-          <NavLink to="/" end>Home</NavLink>
-          <NavLink to="/restaurants">Restaurants</NavLink>
-          <NavLink to="/cart">
-            Cart
-            {itemCount > 0 && <span className="cart-badge" aria-label={`${itemCount} items in cart`}>{itemCount}</span>}
-          </NavLink>
-          <NavLink to="/orders">Orders</NavLink>
-          {isAuthenticated && <NavLink to="/account">Account</NavLink>}
-          {canManageRestaurants && <NavLink to="/admin/restaurants">Admin</NavLink>}
-          {canDeliver && <NavLink to="/courier/deliveries">Courier</NavLink>}
-        </nav>
-        <div className="account-actions">
-          {!isAuthenticated && <Link className="button-link" to="/login">Sign in</Link>}
-          {!isAuthenticated && <Link className="button-link button-link--primary" to="/register">Create account</Link>}
-          {isAuthenticated && user && (
-            <section className="session-card" aria-label="Signed in user">
-              <strong>{user.fullName}</strong>
-              <button type="button" className="button-secondary" onClick={() => void logout()}>
-                Sign out
-              </button>
-            </section>
-          )}
+          <button
+            type="button"
+            className="mobile-menu-button button-secondary"
+            aria-controls="primary-navigation"
+            aria-expanded={isMobileNavOpen}
+            onClick={() => setIsMobileNavOpen((current) => !current)}
+          >
+            Menu
+          </button>
+          <nav
+            id="primary-navigation"
+            className={isMobileNavOpen ? "primary-nav primary-nav--open" : "primary-nav"}
+            aria-label="Primary navigation"
+          >
+            <NavLink to="/" end>Home</NavLink>
+            <NavLink to="/restaurants">Restaurants</NavLink>
+            <NavLink to="/cart" className="cart-nav-link">
+              Cart
+              {itemCount > 0 && <span className="cart-badge" aria-label={`${itemCount} items in cart`}>{itemCount}</span>}
+            </NavLink>
+            <NavLink to="/orders">Orders</NavLink>
+            {isAuthenticated && <NavLink to="/account">Account</NavLink>}
+            {canManageRestaurants && <NavLink to="/admin/restaurants">Admin</NavLink>}
+            {canDeliver && <NavLink to="/courier/deliveries">Courier</NavLink>}
+          </nav>
+          <div className="account-actions">
+            {!isAuthenticated && <Link className="button-link" to="/login">Sign in</Link>}
+            {!isAuthenticated && <Link className="button-link button-link--primary" to="/register">Create account</Link>}
+            {isAuthenticated && user && (
+              <section className="session-card" aria-label="Signed in user">
+                <span className="session-avatar" aria-hidden="true">{getInitials(user.fullName)}</span>
+                <strong>{user.fullName}</strong>
+                <button type="button" className="button-secondary" onClick={() => void logout()}>
+                  Sign out
+                </button>
+              </section>
+            )}
+          </div>
         </div>
       </header>
       <main className="content">
@@ -149,29 +152,63 @@ function AppShell() {
   );
 }
 
+function BrandMark() {
+  return (
+    <Link to="/" className="brand-mark" aria-label="QuickBite home">
+      <svg viewBox="0 0 64 64" role="img" aria-hidden="true" focusable="false">
+        <circle className="brand-mark__plate" cx="32" cy="32" r="28" />
+        <path className="brand-mark__speed" d="M12 25c-3 1-5 3-6 5M14 18c-4 1-7 3-9 6" />
+        <circle className="brand-mark__q-ring" cx="29" cy="32" r="15" />
+        <path className="brand-mark__q-tail" d="M39 42l9 9" />
+        <path className="brand-mark__cloche" d="M19 41h24M23 38c2-9 15-10 18 0M32 27v-5M28 22h8" />
+        <path className="brand-mark__leaf" d="M45 25c7-5 11-2 10 5-6 2-10 1-10-5Z" />
+        <path className="brand-mark__leaf-vein" d="M46 28c3-1 5-2 8-4" />
+      </svg>
+    </Link>
+  );
+}
+
+function getInitials(fullName: string) {
+  return fullName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+}
+
 function Footer({ isAuthenticated }: { isAuthenticated: boolean }) {
   return (
     <footer className="site-footer">
-      <section className="footer-brand" aria-label="QuickBite footer">
-        <Link to="/" className="brand-mark" aria-label="QuickBite home">QB</Link>
-        <div>
-          <strong>QuickBite</strong>
-          <p>Order dinner, track progress, and keep your favorites close.</p>
-        </div>
-      </section>
-      <nav className="footer-links" aria-label="Footer navigation">
-        <Link to="/">Home</Link>
-        <Link to="/restaurants">Restaurants</Link>
-        <Link to="/orders">Orders</Link>
-        <Link to={isAuthenticated ? "/account" : "/login"}>{isAuthenticated ? "Account" : "Sign in"}</Link>
-        {!isAuthenticated && <Link to="/register">Create account</Link>}
-      </nav>
-      <nav className="footer-links footer-links--support" aria-label="Support links">
-        <Link to="/support">Support</Link>
-        <a href="mailto:partners@quickbite.local">Contact</a>
-        <a href="#privacy">Privacy</a>
-        <a href="#terms">Terms</a>
-      </nav>
+      <div className="site-footer__inner">
+        <section className="footer-brand" aria-label="QuickBite footer">
+          <BrandMark />
+          <div>
+            <strong>QuickBite</strong>
+            <p>Order dinner, track progress, and keep your favorites close.</p>
+          </div>
+        </section>
+        <nav className="footer-links" aria-label="Explore links">
+          <strong>Explore</strong>
+          <Link to="/">Home</Link>
+          <Link to="/restaurants">Restaurants</Link>
+          <Link to="/orders">Orders</Link>
+          <Link to={isAuthenticated ? "/account" : "/login"}>{isAuthenticated ? "Account" : "Sign in"}</Link>
+          {!isAuthenticated && <Link to="/register">Create account</Link>}
+        </nav>
+        <nav className="footer-links" aria-label="Help links">
+          <strong>Help</strong>
+          <Link to="/support">Support center</Link>
+          <a href="mailto:partners@quickbite.local">Contact team</a>
+          <a href="#privacy">Privacy</a>
+          <a href="#terms">Terms</a>
+        </nav>
+        <section className="footer-support-card" aria-label="Customer help">
+          <strong>Need order help?</strong>
+          <p>Get payment, delivery, or account help without hunting through your order ids.</p>
+          <Link className="button-link button-link--primary" to="/support">Open support</Link>
+        </section>
+      </div>
     </footer>
   );
 }

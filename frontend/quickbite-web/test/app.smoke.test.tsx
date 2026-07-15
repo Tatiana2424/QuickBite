@@ -193,13 +193,24 @@ describe("QuickBite app shell", () => {
   it("renders the customer home page separately from restaurant browsing", async () => {
     renderApp("/");
 
-    expect(screen.getByRole("link", { name: "Home" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Restaurants" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Cart" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Orders" })).toBeTruthy();
+    const primaryNavigation = screen.getByRole("navigation", { name: "Primary navigation" });
+    expect(within(primaryNavigation).getByRole("link", { name: "Home" })).toBeTruthy();
+    expect(within(primaryNavigation).getByRole("link", { name: "Restaurants" })).toBeTruthy();
+    expect(within(primaryNavigation).getByRole("link", { name: "Cart" })).toBeTruthy();
+    expect(within(primaryNavigation).getByRole("link", { name: "Orders" })).toBeTruthy();
     expect(await screen.findByRole("heading", { name: "Order something good without the guesswork." })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Browse restaurants" })).toBeTruthy();
     expect((await screen.findAllByText("Urban Bowl")).length).toBeGreaterThan(0);
+  });
+
+  it("shows customer footer navigation", async () => {
+    renderApp("/");
+
+    const footer = screen.getByRole("contentinfo");
+    expect(within(footer).getByLabelText("QuickBite footer").textContent).toContain("Order dinner");
+    expect(within(footer).getByRole("navigation", { name: "Footer navigation" })).toBeTruthy();
+    expect(within(footer).getByRole("navigation", { name: "Support links" })).toBeTruthy();
+    expect(within(footer).getByRole("link", { name: "Create account" })).toBeTruthy();
   });
 
   it("keeps the restaurants page focused on catalog search and filters", async () => {
@@ -235,7 +246,7 @@ describe("QuickBite app shell", () => {
     seedSession();
     renderApp("/");
 
-    await user.click(screen.getByRole("link", { name: "Orders", exact: true }));
+    await user.click(within(screen.getByRole("navigation", { name: "Primary navigation" })).getByRole("link", { name: "Orders", exact: true }));
 
     expect(await screen.findByRole("heading", { name: "My Orders" })).toBeTruthy();
     expect(screen.getByText("2 x Harvest Bowl")).toBeTruthy();
@@ -244,7 +255,7 @@ describe("QuickBite app shell", () => {
   it("shows customer navigation states for signed-out and signed-in users", async () => {
     const { unmount } = renderApp("/");
 
-    expect(screen.getByRole("link", { name: "Sign in" })).toBeTruthy();
+    expect(screen.getAllByRole("link", { name: "Sign in" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "Create account" }).length).toBeGreaterThan(0);
     expect(screen.queryByRole("link", { name: "Account" })).toBeNull();
 
@@ -253,7 +264,7 @@ describe("QuickBite app shell", () => {
     seedSession();
     renderApp("/");
 
-    expect(screen.getByRole("link", { name: "Account" })).toBeTruthy();
+    expect(screen.getAllByRole("link", { name: "Account" }).length).toBeGreaterThan(0);
     expect(screen.getByLabelText("Signed in user").textContent).toContain("QuickBite Customer");
   });
 
@@ -267,7 +278,7 @@ describe("QuickBite app shell", () => {
     await user.click(menuButton);
     expect(menuButton.getAttribute("aria-expanded")).toBe("true");
 
-    await user.click(screen.getByRole("link", { name: "Cart" }));
+    await user.click(within(screen.getByRole("navigation", { name: "Primary navigation" })).getByRole("link", { name: "Cart" }));
     expect(await screen.findByRole("heading", { name: "Your cart" })).toBeTruthy();
     expect(menuButton.getAttribute("aria-expanded")).toBe("false");
   });
@@ -333,7 +344,7 @@ describe("QuickBite app shell", () => {
     expect(screen.getByText("New Customer")).toBeTruthy();
   });
 
-  it("lets signed-in customers add menu items and checkout", async () => {
+  it("lets signed-in customers add menu items and checkout from a dedicated page", async () => {
     const user = userEvent.setup();
     seedSession();
     renderApp("/restaurants/restaurant-1");
@@ -342,8 +353,16 @@ describe("QuickBite app shell", () => {
     await user.click(screen.getByRole("button", { name: "Increase Harvest Bowl" }));
 
     expect(screen.getAllByText("$12.50")).toHaveLength(2);
+    expect(screen.queryByRole("heading", { name: "Where should we bring it?" })).toBeNull();
 
-    await user.click(screen.getByRole("button", { name: "Checkout" }));
+    await user.click(screen.getByRole("button", { name: "Review cart" }));
+    expect(await screen.findByRole("heading", { name: "Your cart" })).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "Continue checkout" }));
+    expect(await screen.findByRole("heading", { name: "Checkout" })).toBeTruthy();
+    expect(screen.getByLabelText("Checkout order summary").textContent).toContain("$12.50");
+
+    await user.click(screen.getByRole("button", { name: "Place order" }));
 
     expect(await screen.findByRole("heading", { name: "Order order-1" })).toBeTruthy();
     expect(createOrder).toHaveBeenCalledWith(expect.objectContaining({
@@ -361,6 +380,7 @@ describe("QuickBite app shell", () => {
 
   it("lets customers review cart quantities before checkout", async () => {
     const user = userEvent.setup();
+    seedSession();
     seedCart();
     renderApp("/cart");
 
@@ -372,7 +392,17 @@ describe("QuickBite app shell", () => {
     expect(screen.getAllByText("$18.75").length).toBeGreaterThan(0);
 
     await user.click(screen.getByRole("button", { name: "Continue checkout" }));
-    expect(await screen.findByRole("heading", { name: "Urban Bowl" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Checkout" })).toBeTruthy();
+    expect(screen.getByLabelText("Checkout order summary").textContent).toContain("$18.75");
+  });
+
+  it("guides signed-in customers away from checkout when the cart is empty", async () => {
+    seedSession();
+    renderApp("/checkout");
+
+    expect(await screen.findByRole("heading", { name: "Checkout" })).toBeTruthy();
+    expect(screen.getByText("Your cart is empty")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Browse restaurants" })).toBeTruthy();
   });
 
   it("shows payment status and pending delivery on order details", async () => {

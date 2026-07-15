@@ -75,6 +75,8 @@ label {
 
 .app-shell {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .site-header {
@@ -213,6 +215,46 @@ label {
   width: min(1120px, calc(100% - 2rem));
   margin: 0 auto;
   padding: 2rem 0 3rem;
+  flex: 1;
+}
+
+.site-footer {
+  width: min(1120px, calc(100% - 2rem));
+  margin: auto auto 0;
+  padding: 2rem 0;
+  display: grid;
+  grid-template-columns: minmax(240px, 1.4fr) repeat(2, minmax(160px, auto));
+  gap: 1.5rem;
+  border-top: 1px solid #dce3ea;
+  color: #475467;
+}
+
+.footer-brand {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.footer-brand p {
+  margin: 0.25rem 0 0;
+  max-width: 28rem;
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 0.45rem 0.9rem;
+}
+
+.footer-links a {
+  color: #344054;
+  font-weight: 700;
+}
+
+.footer-links a:hover,
+.footer-links a:focus-visible {
+  color: #0b6b57;
 }
 
 .eyebrow {
@@ -655,6 +697,41 @@ label {
   gap: 1rem;
 }
 
+.checkout-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+  align-items: start;
+  gap: 1rem;
+}
+
+.checkout-summary {
+  display: grid;
+  gap: 1rem;
+}
+
+.checkout-summary h2,
+.checkout-form h2 {
+  margin: 0;
+}
+
+.checkout-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 0.75rem;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+}
+
+.checkout-line:last-child {
+  border-bottom: 0;
+}
+
+.checkout-line small {
+  display: block;
+  color: #64748b;
+}
+
 .cart-total--large {
   padding-top: 1rem;
   border-top: 1px solid #e6edf3;
@@ -859,9 +936,15 @@ label {
 
   .customer-hero,
   .catalog-hero,
-  .discovery-controls {
+  .discovery-controls,
+  .checkout-layout,
+  .site-footer {
     grid-template-columns: 1fr;
     align-items: stretch;
+  }
+
+  .site-footer {
+    gap: 1rem;
   }
 
   .customer-hero .button-link,
@@ -930,6 +1013,20 @@ label {
 
   .checkout-address-grid {
     grid-template-columns: 1fr;
+  }
+
+  .site-footer {
+    width: min(100% - 1rem, 1120px);
+    padding-block: 1.25rem 1.5rem;
+  }
+
+  .footer-brand {
+    flex-direction: column;
+  }
+
+  .footer-links {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .admin-layout {

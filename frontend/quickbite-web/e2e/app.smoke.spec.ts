@@ -202,6 +202,9 @@ test("loads the customer home page through the gateway contract", async ({ page 
   await expect(page.getByRole("heading", { name: "Order something good without the guesswork." })).toBeVisible();
   await expect(page.getByRole("link", { name: "Browse restaurants" })).toBeVisible();
   await expect(page.getByRole("link", { name: /Urban Bowl/ }).first()).toBeVisible();
+  await expect(page.getByRole("contentinfo")).toContainText("Order dinner");
+  await expect(page.getByRole("navigation", { name: "Footer navigation" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Support links" })).toBeVisible();
 });
 
 test("shows restaurant catalog content separately from home", async ({ page }) => {
@@ -246,7 +249,7 @@ test("shows account information for signed-in customers", async ({ page }) => {
   await page.goto("/login");
   await page.getByRole("button", { name: "Sign in" }).click();
 
-  await page.getByRole("link", { name: "Account" }).click();
+  await page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "Account" }).click();
 
   await expect(page.getByRole("heading", { name: "Your QuickBite profile" })).toBeVisible();
   await expect(page.getByLabel("Account information")).toContainText("customer@quickbite.local");
@@ -273,7 +276,7 @@ test("shows an error for invalid login credentials", async ({ page }) => {
   await expect(page.getByText("Invalid email or password.")).toBeVisible();
 });
 
-test("lets signed-in customers add menu items and checkout", async ({ page }) => {
+test("lets signed-in customers add menu items and checkout from a dedicated page", async ({ page }) => {
   await page.goto("/login");
   await page.getByRole("button", { name: "Sign in" }).click();
 
@@ -282,7 +285,15 @@ test("lets signed-in customers add menu items and checkout", async ({ page }) =>
   await page.getByRole("button", { name: "Increase Harvest Bowl" }).click();
 
   await expect(page.getByLabel("Cart summary")).toContainText("$12.50");
-  await page.getByRole("button", { name: "Checkout" }).click();
+  await expect(page.getByRole("heading", { name: "Where should we bring it?" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Review cart" }).click();
+
+  await expect(page.getByRole("heading", { name: "Your cart" })).toBeVisible();
+  await page.getByRole("button", { name: "Continue checkout" }).click();
+
+  await expect(page.getByRole("heading", { name: "Checkout" })).toBeVisible();
+  await expect(page.getByLabel("Checkout order summary")).toContainText("$12.50");
+  await page.getByRole("button", { name: "Place order" }).click();
 
   await expect(page.getByRole("heading", { name: "Order order-1" })).toBeVisible();
   await expect(page.getByLabel("Order progress").getByText("Succeeded", { exact: true })).toBeVisible();
@@ -290,9 +301,20 @@ test("lets signed-in customers add menu items and checkout", async ({ page }) =>
   await expect(page.getByText("Mia Brooks", { exact: true })).toBeVisible();
   await expect(page.getByText("123 Market Street").first()).toBeVisible();
 
-  await page.getByRole("link", { name: "Orders", exact: true }).click();
+  await page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "Orders", exact: true }).click();
   await expect(page.getByRole("heading", { name: "My Orders" })).toBeVisible();
   await expect(page.getByText("2 x Harvest Bowl")).toBeVisible();
+});
+
+test("guides signed-in customers away from checkout when the cart is empty", async ({ page }) => {
+  await page.goto("/login");
+  await page.getByRole("button", { name: "Sign in" }).click();
+
+  await page.goto("/checkout");
+
+  await expect(page.getByRole("heading", { name: "Checkout" })).toBeVisible();
+  await expect(page.getByText("Your cart is empty")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Browse restaurants" })).toBeVisible();
 });
 
 test("opens the cart route and mobile navigation", async ({ page }) => {

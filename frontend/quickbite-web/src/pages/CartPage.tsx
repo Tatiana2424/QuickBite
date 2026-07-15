@@ -5,7 +5,6 @@ import { EmptyState } from "../components/AsyncState";
 export function CartPage() {
   const navigate = useNavigate();
   const { items, itemCount, totalAmount, setQuantity, removeItem, clearCart } = useCart();
-  const checkoutRestaurantId = items[0]?.restaurantId;
 
   if (itemCount === 0) {
     return (
@@ -61,7 +60,7 @@ export function CartPage() {
           <button type="button" className="button-secondary" onClick={clearCart}>
             Clear cart
           </button>
-          <button type="button" onClick={() => navigate(`/restaurants/${checkoutRestaurantId}`)}>
+          <button type="button" onClick={() => navigate("/checkout")}>
             Continue checkout
           </button>
         </div>

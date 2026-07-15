@@ -294,17 +294,19 @@ test("filters restaurant discovery by search and cuisine", async ({ page }) => {
   await expect(discovery.getByRole("link", { name: /Pizza Port/ })).toHaveCount(0);
 });
 
-test("saves favorite restaurants and shows them on home", async ({ page }) => {
+test("saves favorite restaurants and shows them on the favorites page", async ({ page }) => {
   await page.goto("/restaurants");
 
   await page.getByRole("button", { name: "Save favorite" }).first().click();
   await expect(page.getByRole("button", { name: "Saved favorite" }).first()).toBeVisible();
 
-  await page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "Home" }).click();
+  await page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "Favorites" }).click();
 
+  await expect(page.getByRole("heading", { name: "Your saved restaurants" })).toBeVisible();
   const favorites = page.getByRole("region", { name: "Favorite restaurants" });
   await expect(favorites).toBeVisible();
   await expect(favorites.getByRole("link", { name: /Urban Bowl/ })).toBeVisible();
+  await expect(favorites.getByRole("button", { name: "Remove favorite" })).toBeVisible();
 });
 
 test("guards orders and returns after login", async ({ page }) => {

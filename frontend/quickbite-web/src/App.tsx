@@ -7,6 +7,7 @@ import { AccountPage } from "./pages/AccountPage";
 import { CartPage } from "./pages/CartPage";
 import { CheckoutPage } from "./pages/CheckoutPage";
 import { CourierDeliveriesPage } from "./pages/CourierDeliveriesPage";
+import { FavoritesPage } from "./pages/FavoritesPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { OrderDetailsPage } from "./pages/OrderDetailsPage";
@@ -64,7 +65,7 @@ function AppShell() {
           >
             <NavLink to="/" end>Home</NavLink>
             <NavLink to="/restaurants">Restaurants</NavLink>
-            <NavLink to="/#favorites">Favorites</NavLink>
+            <NavLink to="/favorites">Favorites</NavLink>
             <NavLink to="/cart" className="cart-nav-link">
               Cart
               {itemCount > 0 && <span className="cart-badge" aria-label={`${itemCount} items in cart`}>{itemCount}</span>}
@@ -93,6 +94,7 @@ function AppShell() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/restaurants" element={<RestaurantsPage />} />
+          <Route path="/favorites" element={<FavoritesPage />} />
           <Route path="/restaurants/:restaurantId" element={<RestaurantDetailsPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route
@@ -193,6 +195,7 @@ function Footer({ isAuthenticated }: { isAuthenticated: boolean }) {
           <strong>Explore</strong>
           <Link to="/">Home</Link>
           <Link to="/restaurants">Restaurants</Link>
+          <Link to="/favorites">Favorites</Link>
           <Link to="/orders">Orders</Link>
           <Link to={isAuthenticated ? "/account" : "/login"}>{isAuthenticated ? "Account" : "Sign in"}</Link>
           {!isAuthenticated && <Link to="/register">Create account</Link>}

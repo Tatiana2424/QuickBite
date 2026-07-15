@@ -301,7 +301,7 @@ describe("QuickBite app shell", () => {
     expect(within(discovery).queryByRole("link", { name: /Pizza Port/ })).toBeNull();
   });
 
-  it("lets customers save favorite restaurants and see them on home", async () => {
+  it("lets customers save favorite restaurants and see them on the favorites page", async () => {
     const user = userEvent.setup();
     renderApp("/restaurants");
 
@@ -309,10 +309,12 @@ describe("QuickBite app shell", () => {
 
     expect(screen.getAllByRole("button", { name: "Saved favorite" }).length).toBeGreaterThan(0);
 
-    await user.click(within(screen.getByRole("navigation", { name: "Primary navigation" })).getByRole("link", { name: "Home" }));
+    await user.click(within(screen.getByRole("navigation", { name: "Primary navigation" })).getByRole("link", { name: "Favorites" }));
 
+    expect(await screen.findByRole("heading", { name: "Your saved restaurants" })).toBeTruthy();
     const favorites = await screen.findByRole("region", { name: "Favorite restaurants" });
     expect(within(favorites).getByRole("link", { name: /Urban Bowl/ })).toBeTruthy();
+    expect(within(favorites).getByRole("button", { name: "Remove favorite" })).toBeTruthy();
   });
 
   it("lets users navigate to the orders page without a page reload", async () => {

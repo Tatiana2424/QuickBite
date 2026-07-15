@@ -5,6 +5,7 @@ import { useAuth } from "./auth/AuthContext";
 import { CartProvider, useCart } from "./cart/CartContext";
 import { AccountPage } from "./pages/AccountPage";
 import { CartPage } from "./pages/CartPage";
+import { CheckoutPage } from "./pages/CheckoutPage";
 import { CourierDeliveriesPage } from "./pages/CourierDeliveriesPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
@@ -90,6 +91,14 @@ function AppShell() {
           <Route path="/restaurants/:restaurantId" element={<RestaurantDetailsPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route
+            path="/checkout"
+            element={
+              <ProtectedRoute>
+                <CheckoutPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/orders"
             element={
               <ProtectedRoute>
@@ -133,6 +142,34 @@ function AppShell() {
           <Route path="/register" element={<RegisterPage />} />
         </Routes>
       </main>
+      <Footer isAuthenticated={isAuthenticated} />
     </div>
+  );
+}
+
+function Footer({ isAuthenticated }: { isAuthenticated: boolean }) {
+  return (
+    <footer className="site-footer">
+      <section className="footer-brand" aria-label="QuickBite footer">
+        <Link to="/" className="brand-mark" aria-label="QuickBite home">QB</Link>
+        <div>
+          <strong>QuickBite</strong>
+          <p>Order dinner, track progress, and keep your favorites close.</p>
+        </div>
+      </section>
+      <nav className="footer-links" aria-label="Footer navigation">
+        <Link to="/">Home</Link>
+        <Link to="/restaurants">Restaurants</Link>
+        <Link to="/orders">Orders</Link>
+        <Link to={isAuthenticated ? "/account" : "/login"}>{isAuthenticated ? "Account" : "Sign in"}</Link>
+        {!isAuthenticated && <Link to="/register">Create account</Link>}
+      </nav>
+      <nav className="footer-links footer-links--support" aria-label="Support links">
+        <a href="mailto:support@quickbite.local">Support</a>
+        <a href="mailto:partners@quickbite.local">Contact</a>
+        <a href="#privacy">Privacy</a>
+        <a href="#terms">Terms</a>
+      </nav>
+    </footer>
   );
 }

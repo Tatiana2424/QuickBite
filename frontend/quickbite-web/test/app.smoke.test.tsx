@@ -241,6 +241,20 @@ describe("QuickBite app shell", () => {
     expect(within(discovery).queryByRole("link", { name: /Pizza Port/ })).toBeNull();
   });
 
+  it("lets customers save favorite restaurants and see them on home", async () => {
+    const user = userEvent.setup();
+    renderApp("/restaurants");
+
+    await user.click((await screen.findAllByRole("button", { name: "Save favorite" }))[0]);
+
+    expect(screen.getAllByRole("button", { name: "Saved favorite" }).length).toBeGreaterThan(0);
+
+    await user.click(within(screen.getByRole("navigation", { name: "Primary navigation" })).getByRole("link", { name: "Home" }));
+
+    const favorites = await screen.findByRole("region", { name: "Favorite restaurants" });
+    expect(within(favorites).getByRole("link", { name: /Urban Bowl/ })).toBeTruthy();
+  });
+
   it("lets users navigate to the orders page without a page reload", async () => {
     const user = userEvent.setup();
     seedSession();
@@ -417,6 +431,19 @@ describe("QuickBite app shell", () => {
     expect(screen.getAllByText(/123 Market Street/).length).toBeGreaterThan(0);
     expect(screen.getByText("2 x Harvest Bowl")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Refresh status" })).toBeTruthy();
+  });
+
+  it("lets signed-in customers reorder a previous order into the cart", async () => {
+    const user = userEvent.setup();
+    seedSession();
+    renderApp("/orders/order-1");
+
+    await user.click(await screen.findByRole("button", { name: "Reorder" }));
+
+    expect(await screen.findByRole("heading", { name: "Your cart" })).toBeTruthy();
+    expect(screen.getByText(/Reorder started/)).toBeTruthy();
+    expect(screen.getByText("Harvest Bowl")).toBeTruthy();
+    expect(screen.getAllByText("$12.50").length).toBeGreaterThan(0);
   });
 
   it("prefills the login form with the seeded customer account", async () => {

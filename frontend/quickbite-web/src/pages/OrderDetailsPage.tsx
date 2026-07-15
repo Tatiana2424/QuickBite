@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { useCart } from "../cart/CartContext";
 import { ErrorState, LoadingState } from "../components/AsyncState";
 import type { Delivery, Order, Payment } from "../models";
 import { getDeliveryForOrder, getOrder, getPaymentForOrder } from "../services/quickbiteService";
@@ -11,6 +12,8 @@ const activeDeliveryStatuses = new Set(["Pending", "Assigned", "PickedUp"]);
 
 export function OrderDetailsPage() {
   const { orderId = "" } = useParams();
+  const navigate = useNavigate();
+  const { replaceItems } = useCart();
   const orderQuery = useQuery({
     queryKey: ["order", orderId],
     queryFn: () => getOrder(orderId),
@@ -49,18 +52,29 @@ export function OrderDetailsPage() {
           <h2>Order {order.id.slice(0, 8)}</h2>
           <p className="muted">{formatOrderDate(order.createdAtUtc)}</p>
         </div>
-        <button
-          type="button"
-          className="button-secondary"
-          disabled={isRefreshing}
-          onClick={() => {
-            void orderQuery.refetch();
-            void paymentQuery.refetch();
-            void deliveryQuery.refetch();
-          }}
-        >
-          {isRefreshing ? "Refreshing..." : "Refresh status"}
-        </button>
+        <div className="order-detail-actions">
+          <button
+            type="button"
+            className="button-secondary"
+            disabled={isRefreshing}
+            onClick={() => {
+              void orderQuery.refetch();
+              void paymentQuery.refetch();
+              void deliveryQuery.refetch();
+            }}
+          >
+            {isRefreshing ? "Refreshing..." : "Refresh status"}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              replaceItems(order.items, order.id);
+              navigate("/cart", { state: { reorderSource: order.id } });
+            }}
+          >
+            Reorder
+          </button>
+        </div>
       </div>
       <OrderProgressTimeline order={order} payment={paymentQuery.data} delivery={deliveryQuery.data} />
       <div className="lifecycle-grid">

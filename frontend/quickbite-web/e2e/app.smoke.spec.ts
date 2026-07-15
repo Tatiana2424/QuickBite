@@ -234,6 +234,19 @@ test("filters restaurant discovery by search and cuisine", async ({ page }) => {
   await expect(discovery.getByRole("link", { name: /Pizza Port/ })).toHaveCount(0);
 });
 
+test("saves favorite restaurants and shows them on home", async ({ page }) => {
+  await page.goto("/restaurants");
+
+  await page.getByRole("button", { name: "Save favorite" }).first().click();
+  await expect(page.getByRole("button", { name: "Saved favorite" }).first()).toBeVisible();
+
+  await page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "Home" }).click();
+
+  const favorites = page.getByRole("region", { name: "Favorite restaurants" });
+  await expect(favorites).toBeVisible();
+  await expect(favorites.getByRole("link", { name: /Urban Bowl/ })).toBeVisible();
+});
+
 test("guards orders and returns after login", async ({ page }) => {
   await page.goto("/orders");
 
@@ -304,6 +317,19 @@ test("lets signed-in customers add menu items and checkout from a dedicated page
   await page.getByRole("navigation", { name: "Primary navigation" }).getByRole("link", { name: "Orders", exact: true }).click();
   await expect(page.getByRole("heading", { name: "My Orders" })).toBeVisible();
   await expect(page.getByText("2 x Harvest Bowl")).toBeVisible();
+});
+
+test("lets signed-in customers reorder a previous order", async ({ page }) => {
+  await page.goto("/login");
+  await page.getByRole("button", { name: "Sign in" }).click();
+
+  await page.goto("/orders/order-1");
+  await page.getByRole("button", { name: "Reorder" }).click();
+
+  await expect(page.getByRole("heading", { name: "Your cart" })).toBeVisible();
+  await expect(page.getByText(/Reorder started/)).toBeVisible();
+  await expect(page.getByText("Harvest Bowl")).toBeVisible();
+  await expect(page.getByText("$12.50").first()).toBeVisible();
 });
 
 test("guides signed-in customers away from checkout when the cart is empty", async ({ page }) => {

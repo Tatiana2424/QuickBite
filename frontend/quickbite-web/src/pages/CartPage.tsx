@@ -1,10 +1,15 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useCart } from "../cart/CartContext";
 import { EmptyState } from "../components/AsyncState";
 
 export function CartPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { items, itemCount, totalAmount, setQuantity, removeItem, clearCart } = useCart();
+  const isReorderCart = items.some((item) => item.restaurantId.startsWith("reorder-"));
+  const reorderSource = typeof location.state === "object" && location.state !== null && "reorderSource" in location.state
+    ? String(location.state.reorderSource)
+    : null;
 
   if (itemCount === 0) {
     return (
@@ -29,6 +34,12 @@ export function CartPage() {
         <p className="muted">Review quantities, then continue to checkout for delivery details.</p>
       </div>
       <section className="panel cart-page-panel" aria-label="Cart items">
+        {isReorderCart && (
+          <div className="notice-card" role="status">
+            <strong>Reorder started{reorderSource ? ` from order ${reorderSource.slice(0, 8)}` : ""}.</strong>
+            <p className="muted">Review quantities before checkout. If a menu item changed, checkout will show the latest order result from the API.</p>
+          </div>
+        )}
         <div className="cart-lines">
           {items.map((item) => (
             <article key={item.menuItemId} className="cart-line">

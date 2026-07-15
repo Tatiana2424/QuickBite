@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { EmptyState, ErrorState, LoadingState } from "../components/AsyncState";
+import { useFavoriteRestaurants } from "../favorites/useFavoriteRestaurants";
 import { RestaurantSummary } from "../models";
 import { getRestaurants } from "../services/quickbiteService";
 
@@ -10,6 +11,7 @@ export function RestaurantsPage() {
   const cuisineFromUrl = searchParams.get("cuisine");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCuisine, setSelectedCuisine] = useState(cuisineFromUrl || "All");
+  const { isFavorite, toggleFavorite } = useFavoriteRestaurants();
   const restaurantsQuery = useQuery({
     queryKey: ["restaurants"],
     queryFn: getRestaurants
@@ -61,7 +63,13 @@ export function RestaurantsPage() {
             </div>
             <div className="featured-grid">
               {featuredRestaurants.map((restaurant, index) => (
-                <RestaurantCard key={restaurant.id} restaurant={restaurant} featuredRank={index + 1} />
+                <RestaurantCard
+                  key={restaurant.id}
+                  restaurant={restaurant}
+                  featuredRank={index + 1}
+                  isFavorite={isFavorite(restaurant.id)}
+                  onToggleFavorite={() => toggleFavorite(restaurant.id)}
+                />
               ))}
             </div>
           </section>
@@ -102,7 +110,12 @@ export function RestaurantsPage() {
             ) : (
               <div className="grid">
                 {filteredRestaurants.map((restaurant) => (
-                  <RestaurantCard key={restaurant.id} restaurant={restaurant} />
+                  <RestaurantCard
+                    key={restaurant.id}
+                    restaurant={restaurant}
+                    isFavorite={isFavorite(restaurant.id)}
+                    onToggleFavorite={() => toggleFavorite(restaurant.id)}
+                  />
                 ))}
               </div>
             )}
@@ -127,19 +140,33 @@ export function RestaurantsPage() {
 
 function RestaurantCard({
   restaurant,
-  featuredRank
+  featuredRank,
+  isFavorite,
+  onToggleFavorite
 }: {
   restaurant: RestaurantSummary;
   featuredRank?: number;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
 }) {
   return (
-    <Link to={`/restaurants/${restaurant.id}`} className="card restaurant-card">
+    <article className="card restaurant-card">
       <div className="restaurant-card__meta">
         <span className="cuisine-chip">{restaurant.cuisine}</span>
         {featuredRank && <span className="rank-chip">#{featuredRank}</span>}
       </div>
-      <strong>{restaurant.name}</strong>
+      <Link to={`/restaurants/${restaurant.id}`} className="restaurant-card__link">
+        <strong>{restaurant.name}</strong>
+      </Link>
       <p>{restaurant.description}</p>
-    </Link>
+      <button
+        type="button"
+        className="button-secondary favorite-button"
+        aria-pressed={isFavorite}
+        onClick={onToggleFavorite}
+      >
+        {isFavorite ? "Saved favorite" : "Save favorite"}
+      </button>
+    </article>
   );
 }

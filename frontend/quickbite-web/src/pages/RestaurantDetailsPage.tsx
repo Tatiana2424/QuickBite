@@ -2,12 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { useCart } from "../cart/CartContext";
 import { EmptyState, ErrorState, LoadingState } from "../components/AsyncState";
+import { useFavoriteRestaurants } from "../favorites/useFavoriteRestaurants";
 import { getRestaurantDetails } from "../services/quickbiteService";
 
 export function RestaurantDetailsPage() {
   const { restaurantId = "" } = useParams();
   const navigate = useNavigate();
   const { items, itemCount, totalAmount, addItem, setQuantity, removeItem } = useCart();
+  const { isFavorite, toggleFavorite } = useFavoriteRestaurants();
   const restaurantQuery = useQuery({
     queryKey: ["restaurant-details", restaurantId],
     queryFn: () => getRestaurantDetails(restaurantId),
@@ -24,10 +26,20 @@ export function RestaurantDetailsPage() {
 
   return (
     <section className="stack">
-      <div>
-        <p className="eyebrow">{restaurantQuery.data.cuisine}</p>
-        <h2>{restaurantQuery.data.name}</h2>
-        <p>{restaurantQuery.data.description}</p>
+      <div className="restaurant-detail-heading">
+        <div>
+          <p className="eyebrow">{restaurantQuery.data.cuisine}</p>
+          <h2>{restaurantQuery.data.name}</h2>
+          <p>{restaurantQuery.data.description}</p>
+        </div>
+        <button
+          type="button"
+          className="button-secondary favorite-button"
+          aria-pressed={isFavorite(restaurantQuery.data.id)}
+          onClick={() => toggleFavorite(restaurantQuery.data.id)}
+        >
+          {isFavorite(restaurantQuery.data.id) ? "Saved favorite" : "Save favorite"}
+        </button>
       </div>
       {restaurantQuery.data.menuItems.length === 0 && (
         <EmptyState title="No menu items">This restaurant does not have menu data yet.</EmptyState>

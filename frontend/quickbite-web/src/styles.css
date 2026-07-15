@@ -497,15 +497,22 @@ label {
 }
 
 .restaurant-card:hover,
-.restaurant-card:focus-visible,
 .menu-item-card:hover {
   border-color: #9ad8c8;
 }
 
-.restaurant-card:hover,
-.restaurant-card:focus-visible {
+.restaurant-card:hover {
   transform: translateY(-2px);
   outline: none;
+}
+
+.restaurant-card__link {
+  color: #0f172a;
+}
+
+.restaurant-card__link:hover,
+.restaurant-card__link:focus-visible {
+  color: #0b6b57;
 }
 
 .restaurant-card__meta {
@@ -538,16 +545,58 @@ label {
   justify-self: start;
 }
 
+.favorite-button {
+  justify-self: start;
+}
+
+.favorite-button[aria-pressed="true"] {
+  background: #fff4e6;
+  color: #c24805;
+}
+
+.favorites-panel,
+.favorite-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.favorite-list {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.favorite-pill {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.85rem;
+  border: 1px solid #dce3ea;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.favorite-pill span {
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.favorite-pill small {
+  color: #64748b;
+}
+
+.restaurant-detail-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
 .order-card {
   color: inherit;
   transition: border-color 0.15s ease, transform 0.15s ease;
 }
 
-.order-card:hover,
-.order-card:focus-visible {
+.order-card:hover {
   border-color: #9ad8c8;
   transform: translateY(-2px);
-  outline: none;
 }
 
 .order-card__header,
@@ -568,6 +617,23 @@ label {
   align-items: start;
   justify-content: space-between;
   gap: 1rem;
+}
+
+.order-card__actions,
+.order-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.notice-card {
+  display: grid;
+  gap: 0.25rem;
+  padding: 1rem;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  background: #fff7ed;
 }
 
 .order-detail-heading h2 {
@@ -1004,6 +1070,8 @@ label {
 
   .cart-page-actions,
   .order-detail-heading,
+  .order-detail-actions,
+  .restaurant-detail-heading,
   .section-heading--row,
   .home-order-panel,
   .progress-step__header {

@@ -19,6 +19,7 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<CustomerAddress> CustomerAddresses => Set<CustomerAddress>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -32,6 +33,21 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
             entity.Property(x => x.PasswordHash).HasMaxLength(512);
             entity.HasMany(x => x.UserRoles).WithOne(x => x.User).HasForeignKey(x => x.UserId);
             entity.HasMany(x => x.RefreshTokens).WithOne(x => x.User).HasForeignKey(x => x.UserId);
+            entity.HasMany(x => x.Addresses).WithOne(x => x.User).HasForeignKey(x => x.UserId);
+        });
+
+        modelBuilder.Entity<CustomerAddress>(entity =>
+        {
+            entity.ToTable("CustomerAddresses");
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => x.UserId);
+            entity.Property(x => x.Label).HasMaxLength(80);
+            entity.Property(x => x.Line1).HasMaxLength(200);
+            entity.Property(x => x.Line2).HasMaxLength(200);
+            entity.Property(x => x.City).HasMaxLength(120);
+            entity.Property(x => x.State).HasMaxLength(80);
+            entity.Property(x => x.PostalCode).HasMaxLength(20);
+            entity.Property(x => x.Country).HasMaxLength(80);
         });
 
         modelBuilder.Entity<Role>(entity =>
@@ -131,6 +147,7 @@ public static class IdentityInfrastructureServiceCollectionExtensions
         services.AddDbContext<IdentityDbContext>(options =>
             options.UseSqlServer(connectionString));
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<ICustomerAddressService, CustomerAddressService>();
         return services;
     }
 
@@ -351,6 +368,128 @@ internal sealed class AuthService(IdentityDbContext dbContext, IOptions<JwtOptio
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));
         return Convert.ToHexString(bytes);
     }
+}
+
+internal sealed class CustomerAddressService(IdentityDbContext dbContext) : ICustomerAddressService
+{
+    public async Task<IReadOnlyCollection<CustomerAddressDto>> ListAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        return await dbContext.CustomerAddresses
+            .AsNoTracking()
+            .Where(x => x.UserId == userId)
+            .OrderByDescending(x => x.IsDefault)
+            .ThenBy(x => x.Label)
+            .Select(x => new CustomerAddressDto(
+                x.Id,
+                x.Label,
+                x.Line1,
+                x.Line2,
+                x.City,
+                x.State,
+                x.PostalCode,
+                x.Country,
+                x.IsDefault))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<CustomerAddressDto> CreateAsync(Guid userId, CustomerAddressRequest request, CancellationToken cancellationToken)
+    {
+        var shouldBeDefault = request.IsDefault || !await dbContext.CustomerAddresses.AnyAsync(x => x.UserId == userId, cancellationToken);
+        if (shouldBeDefault)
+        {
+            await ClearDefaultAsync(userId, cancellationToken);
+        }
+
+        var address = new CustomerAddress(
+            userId,
+            request.Label,
+            request.Line1,
+            request.Line2,
+            request.City,
+            request.State,
+            request.PostalCode,
+            request.Country,
+            shouldBeDefault);
+
+        dbContext.CustomerAddresses.Add(address);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return MapAddress(address);
+    }
+
+    public async Task<CustomerAddressDto?> UpdateAsync(Guid userId, Guid addressId, CustomerAddressRequest request, CancellationToken cancellationToken)
+    {
+        var address = await dbContext.CustomerAddresses.FirstOrDefaultAsync(x => x.UserId == userId && x.Id == addressId, cancellationToken);
+        if (address is null)
+        {
+            return null;
+        }
+
+        if (request.IsDefault)
+        {
+            await ClearDefaultAsync(userId, cancellationToken);
+        }
+
+        address.Update(
+            request.Label,
+            request.Line1,
+            request.Line2,
+            request.City,
+            request.State,
+            request.PostalCode,
+            request.Country,
+            request.IsDefault);
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return MapAddress(address);
+    }
+
+    public async Task<bool> DeleteAsync(Guid userId, Guid addressId, CancellationToken cancellationToken)
+    {
+        var address = await dbContext.CustomerAddresses.FirstOrDefaultAsync(x => x.UserId == userId && x.Id == addressId, cancellationToken);
+        if (address is null)
+        {
+            return false;
+        }
+
+        var wasDefault = address.IsDefault;
+        dbContext.CustomerAddresses.Remove(address);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        if (wasDefault)
+        {
+            var replacement = await dbContext.CustomerAddresses
+                .Where(x => x.UserId == userId)
+                .OrderBy(x => x.CreatedAtUtc)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (replacement is not null)
+            {
+                replacement.SetDefault(true);
+                await dbContext.SaveChangesAsync(cancellationToken);
+            }
+        }
+
+        return true;
+    }
+
+    private async Task ClearDefaultAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var currentDefaults = await dbContext.CustomerAddresses.Where(x => x.UserId == userId && x.IsDefault).ToListAsync(cancellationToken);
+        foreach (var currentDefault in currentDefaults)
+        {
+            currentDefault.SetDefault(false);
+        }
+    }
+
+    private static CustomerAddressDto MapAddress(CustomerAddress address) => new(
+        address.Id,
+        address.Label,
+        address.Line1,
+        address.Line2,
+        address.City,
+        address.State,
+        address.PostalCode,
+        address.Country,
+        address.IsDefault);
 }
 
 internal sealed record AccessTokenIssue(string Token, DateTimeOffset ExpiresAtUtc);

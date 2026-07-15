@@ -151,6 +151,7 @@ function RestaurantCard({
 }) {
   return (
     <article className="card restaurant-card">
+      <RestaurantVisual restaurant={restaurant} />
       <div className="restaurant-card__meta">
         <span className="cuisine-chip">{restaurant.cuisine}</span>
         {featuredRank && <span className="rank-chip">#{featuredRank}</span>}
@@ -159,6 +160,12 @@ function RestaurantCard({
         <strong>{restaurant.name}</strong>
       </Link>
       <p>{restaurant.description}</p>
+      <div className="restaurant-card__stats" aria-label={`${restaurant.name} delivery details`}>
+        <span>{formatRating(restaurant.rating)}</span>
+        <span>{restaurant.estimatedDeliveryMinutes ?? 30} min</span>
+        <span>{formatFee(restaurant.deliveryFee)}</span>
+        <span>${(restaurant.minimumOrder ?? 15).toFixed(0)} min</span>
+      </div>
       <button
         type="button"
         className="button-secondary favorite-button"
@@ -169,4 +176,20 @@ function RestaurantCard({
       </button>
     </article>
   );
+}
+
+function RestaurantVisual({ restaurant }: { restaurant: RestaurantSummary }) {
+  if (!restaurant.imageUrl) {
+    return <div className="restaurant-card__fallback" aria-hidden="true">{restaurant.name.slice(0, 2).toUpperCase()}</div>;
+  }
+
+  return <img className="restaurant-card__image" src={restaurant.imageUrl} alt="" loading="lazy" />;
+}
+
+function formatRating(value?: number) {
+  return `${(value ?? 4.6).toFixed(1)} stars`;
+}
+
+function formatFee(value?: number) {
+  return !value || value === 0 ? "Free delivery" : `$${value.toFixed(2)} delivery`;
 }

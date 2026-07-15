@@ -67,6 +67,14 @@ input {
   background: #ffffff;
 }
 
+select {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid #c9d3df;
+  padding: 0.85rem 1rem;
+  background: #ffffff;
+}
+
 label {
   display: grid;
   gap: 0.4rem;
@@ -496,6 +504,23 @@ label {
   transition: border-color 0.15s ease, transform 0.15s ease;
 }
 
+.restaurant-card__image,
+.restaurant-card__fallback {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  object-fit: cover;
+  background: linear-gradient(135deg, #0b6b57, #f97316);
+}
+
+.restaurant-card__fallback {
+  display: grid;
+  place-items: center;
+  color: white;
+  font-size: 1.4rem;
+  font-weight: 900;
+}
+
 .restaurant-card:hover,
 .menu-item-card:hover {
   border-color: #9ad8c8;
@@ -520,6 +545,21 @@ label {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+}
+
+.restaurant-card__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.restaurant-card__stats span {
+  border-radius: 999px;
+  padding: 0.24rem 0.55rem;
+  background: #f8fafc;
+  color: #475467;
+  font-size: 0.82rem;
+  font-weight: 700;
 }
 
 .cuisine-chip {
@@ -585,6 +625,48 @@ label {
 .restaurant-detail-heading {
   display: flex;
   align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.address-list,
+.save-address-options,
+.support-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.address-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid #dce3ea;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.checkbox-label input {
+  width: auto;
+}
+
+.support-grid {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.support-card {
+  align-content: space-between;
+}
+
+.support-inline {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
 }
@@ -1072,6 +1154,8 @@ label {
   .order-detail-heading,
   .order-detail-actions,
   .restaurant-detail-heading,
+  .address-card,
+  .support-inline,
   .section-heading--row,
   .home-order-panel,
   .progress-step__header {

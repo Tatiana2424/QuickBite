@@ -139,28 +139,23 @@ internal sealed class CatalogService(CatalogDbContext dbContext) : ICatalogServi
 {
     public async Task<IReadOnlyCollection<RestaurantSummaryDto>> GetRestaurantsAsync(CancellationToken cancellationToken)
     {
-        return await dbContext.Restaurants
+        var restaurants = await dbContext.Restaurants
             .AsNoTracking()
             .OrderBy(x => x.Name)
-            .Select(x => new RestaurantSummaryDto(x.Id, x.Name, x.Cuisine, x.Description))
             .ToListAsync(cancellationToken);
+
+        return restaurants.Select(MapRestaurantSummary).ToList();
     }
 
     public async Task<RestaurantDetailsDto?> GetRestaurantAsync(Guid id, CancellationToken cancellationToken)
     {
-        return await dbContext.Restaurants
+        var restaurant = await dbContext.Restaurants
             .AsNoTracking()
+            .Include(x => x.MenuItems)
             .Where(x => x.Id == id)
-            .Select(x => new RestaurantDetailsDto(
-                x.Id,
-                x.Name,
-                x.Cuisine,
-                x.Description,
-                x.MenuItems
-                    .OrderBy(item => item.Name)
-                    .Select(item => new MenuItemDto(item.Id, item.RestaurantId, item.Name, item.Description, item.Price))
-                    .ToList()))
             .FirstOrDefaultAsync(cancellationToken);
+
+        return restaurant is null ? null : MapRestaurantDetails(restaurant);
     }
 
     public async Task<IReadOnlyCollection<MenuItemDto>> GetMenuAsync(Guid restaurantId, CancellationToken cancellationToken)
@@ -178,7 +173,7 @@ internal sealed class CatalogService(CatalogDbContext dbContext) : ICatalogServi
         var restaurant = new Restaurant(request.Name, request.Cuisine, request.Description);
         dbContext.Restaurants.Add(restaurant);
         await dbContext.SaveChangesAsync(cancellationToken);
-        return new RestaurantDetailsDto(restaurant.Id, restaurant.Name, restaurant.Cuisine, restaurant.Description, []);
+        return MapRestaurantDetails(restaurant);
     }
 
     public async Task<RestaurantDetailsDto?> UpdateRestaurantAsync(Guid id, RestaurantMutationRequest request, CancellationToken cancellationToken)
@@ -191,12 +186,7 @@ internal sealed class CatalogService(CatalogDbContext dbContext) : ICatalogServi
 
         restaurant.Update(request.Name, request.Cuisine, request.Description);
         await dbContext.SaveChangesAsync(cancellationToken);
-        return new RestaurantDetailsDto(
-            restaurant.Id,
-            restaurant.Name,
-            restaurant.Cuisine,
-            restaurant.Description,
-            restaurant.MenuItems.OrderBy(x => x.Name).Select(MapMenuItem).ToList());
+        return MapRestaurantDetails(restaurant);
     }
 
     public async Task<MenuItemDto?> CreateMenuItemAsync(Guid restaurantId, MenuItemMutationRequest request, CancellationToken cancellationToken)
@@ -228,7 +218,75 @@ internal sealed class CatalogService(CatalogDbContext dbContext) : ICatalogServi
         return MapMenuItem(menuItem);
     }
 
+    private static RestaurantSummaryDto MapRestaurantSummary(Restaurant restaurant)
+    {
+        var metadata = RestaurantMetadata.For(restaurant.Name, restaurant.Cuisine);
+        return new RestaurantSummaryDto(
+            restaurant.Id,
+            restaurant.Name,
+            restaurant.Cuisine,
+            restaurant.Description,
+            metadata.ImageUrl,
+            metadata.Rating,
+            metadata.EstimatedDeliveryMinutes,
+            metadata.DeliveryFee,
+            metadata.MinimumOrder);
+    }
+
+    private static RestaurantDetailsDto MapRestaurantDetails(Restaurant restaurant)
+    {
+        var metadata = RestaurantMetadata.For(restaurant.Name, restaurant.Cuisine);
+        return new RestaurantDetailsDto(
+            restaurant.Id,
+            restaurant.Name,
+            restaurant.Cuisine,
+            restaurant.Description,
+            metadata.ImageUrl,
+            metadata.Rating,
+            metadata.EstimatedDeliveryMinutes,
+            metadata.DeliveryFee,
+            metadata.MinimumOrder,
+            restaurant.MenuItems.OrderBy(x => x.Name).Select(MapMenuItem).ToList());
+    }
+
     private static MenuItemDto MapMenuItem(MenuItem item) => new(item.Id, item.RestaurantId, item.Name, item.Description, item.Price);
+
+    private sealed record RestaurantMetadata(string? ImageUrl, decimal Rating, int EstimatedDeliveryMinutes, decimal DeliveryFee, decimal MinimumOrder)
+    {
+        public static RestaurantMetadata For(string name, string cuisine)
+        {
+            var seed = Math.Abs(HashCode.Combine(name, cuisine));
+            var rating = 4.2m + (seed % 8) / 10m;
+            var deliveryMinutes = 20 + (seed % 5) * 5;
+            var deliveryFee = (seed % 4) switch
+            {
+                0 => 0m,
+                1 => 1.99m,
+                2 => 2.49m,
+                _ => 3.49m
+            };
+            var minimumOrder = 10m + (seed % 4) * 5m;
+
+            return new RestaurantMetadata(ImageFor(cuisine), rating, deliveryMinutes, deliveryFee, minimumOrder);
+        }
+
+        private static string? ImageFor(string cuisine) => cuisine switch
+        {
+            "Asian" => "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=900&q=80",
+            "Barbecue" => "https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?auto=format&fit=crop&w=900&q=80",
+            "Breakfast" => "https://images.unsplash.com/photo-1493770348161-369560ae357d?auto=format&fit=crop&w=900&q=80",
+            "Burgers" => "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=900&q=80",
+            "Dessert" => "https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=900&q=80",
+            "Healthy" => "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=900&q=80",
+            "Indian" => "https://images.unsplash.com/photo-1585937421612-70a008356fbe?auto=format&fit=crop&w=900&q=80",
+            "Italian" => "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=900&q=80",
+            "Japanese" => "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=900&q=80",
+            "Mediterranean" => "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=900&q=80",
+            "Mexican" => "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=900&q=80",
+            "Vegan" => "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=900&q=80",
+            _ => null
+        };
+    }
 }
 
 public sealed class CatalogDbContextFactory : IDesignTimeDbContextFactory<CatalogDbContext>

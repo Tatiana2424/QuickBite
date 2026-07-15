@@ -21,6 +21,7 @@ builder.Services.AddScoped<IValidator<RegisterRequest>, RegisterRequestValidator
 builder.Services.AddScoped<IValidator<LoginRequest>, LoginRequestValidator>();
 builder.Services.AddScoped<IValidator<RefreshTokenRequest>, RefreshTokenRequestValidator>();
 builder.Services.AddScoped<IValidator<RevokeRefreshTokenRequest>, RevokeRefreshTokenRequestValidator>();
+builder.Services.AddScoped<IValidator<CustomerAddressRequest>, CustomerAddressRequestValidator>();
 builder.Services.AddHealthChecks()
     .AddQuickBiteDbContextReadiness<IdentityDbContext>("identity-db");
 builder.Services.AddEndpointsApiExplorer();

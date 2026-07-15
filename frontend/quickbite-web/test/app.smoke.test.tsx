@@ -24,19 +24,34 @@ vi.mock("../src/services/quickbiteService", () => ({
       id: "restaurant-1",
       name: "Urban Bowl",
       cuisine: "Healthy",
-      description: "Balanced bowls and fresh wraps."
+      description: "Balanced bowls and fresh wraps.",
+      imageUrl: null,
+      rating: 4.8,
+      estimatedDeliveryMinutes: 25,
+      deliveryFee: 0,
+      minimumOrder: 12
     },
     {
       id: "restaurant-2",
       name: "Pizza Port",
       cuisine: "Italian",
-      description: "Stone baked pizzas and sides."
+      description: "Stone baked pizzas and sides.",
+      imageUrl: null,
+      rating: 4.5,
+      estimatedDeliveryMinutes: 35,
+      deliveryFee: 2.49,
+      minimumOrder: 15
     },
     {
       id: "restaurant-3",
       name: "Taco Lane",
       cuisine: "Mexican",
-      description: "Street tacos, bowls, and bright salsas."
+      description: "Street tacos, bowls, and bright salsas.",
+      imageUrl: null,
+      rating: 4.6,
+      estimatedDeliveryMinutes: 30,
+      deliveryFee: 1.99,
+      minimumOrder: 10
     }
   ]),
   getRestaurantDetails: vi.fn().mockResolvedValue({
@@ -44,6 +59,11 @@ vi.mock("../src/services/quickbiteService", () => ({
     name: "Urban Bowl",
     cuisine: "Healthy",
     description: "Balanced bowls and fresh wraps.",
+    imageUrl: null,
+    rating: 4.8,
+    estimatedDeliveryMinutes: 25,
+    deliveryFee: 0,
+    minimumOrder: 12,
     menuItems: [
       {
         id: "menu-item-1",
@@ -111,6 +131,11 @@ vi.mock("../src/services/quickbiteService", () => ({
     name: "Noodle House",
     cuisine: "Asian",
     description: "Fresh noodles and broths.",
+    imageUrl: null,
+    rating: 4.4,
+    estimatedDeliveryMinutes: 30,
+    deliveryFee: 1.99,
+    minimumOrder: 15,
     menuItems: []
   }),
   updateRestaurant: vi.fn().mockResolvedValue({
@@ -118,6 +143,11 @@ vi.mock("../src/services/quickbiteService", () => ({
     name: "Urban Bowl",
     cuisine: "Healthy",
     description: "Balanced bowls and fresh wraps.",
+    imageUrl: null,
+    rating: 4.8,
+    estimatedDeliveryMinutes: 25,
+    deliveryFee: 0,
+    minimumOrder: 12,
     menuItems: []
   }),
   createMenuItem: vi.fn().mockResolvedValue({
@@ -160,6 +190,32 @@ vi.mock("../src/services/quickbiteService", () => ({
       }
     ]
   }),
+  getSavedAddresses: vi.fn().mockResolvedValue([
+    {
+      id: "address-1",
+      label: "Home",
+      line1: "123 Market Street",
+      line2: null,
+      city: "Seattle",
+      state: "WA",
+      postalCode: "98101",
+      country: "USA",
+      isDefault: true
+    }
+  ]),
+  createSavedAddress: vi.fn().mockResolvedValue({
+    id: "address-2",
+    label: "Work",
+    line1: "500 Pine Street",
+    line2: null,
+    city: "Seattle",
+    state: "WA",
+    postalCode: "98101",
+    country: "USA",
+    isDefault: false
+  }),
+  updateSavedAddress: vi.fn(),
+  deleteSavedAddress: vi.fn().mockResolvedValue(undefined),
   login: vi.fn().mockResolvedValue({
     userId: "user-1",
     email: "customer@quickbite.local",
@@ -219,6 +275,8 @@ describe("QuickBite app shell", () => {
     expect(await screen.findByRole("heading", { name: "Browse restaurants" })).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Order something good without the guesswork." })).toBeNull();
     expect(await screen.findByRole("region", { name: "All restaurants" })).toBeTruthy();
+    expect(screen.getAllByText("4.8 stars").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("25 min").length).toBeGreaterThan(0);
   });
 
   it("filters restaurants by search text and cuisine chips", async () => {
@@ -304,6 +362,16 @@ describe("QuickBite app shell", () => {
     expect(await screen.findByRole("heading", { name: "Your QuickBite profile" })).toBeTruthy();
     expect(screen.getByText("customer@quickbite.local")).toBeTruthy();
     expect(screen.getByText("Customer")).toBeTruthy();
+    expect(await screen.findByRole("region", { name: "Saved delivery addresses" })).toBeTruthy();
+    expect(await screen.findByText("Home (default)")).toBeTruthy();
+  });
+
+  it("shows support guidance from the support page", async () => {
+    renderApp("/support");
+
+    expect(screen.getByRole("heading", { name: "How can we help?" })).toBeTruthy();
+    expect(screen.getByText("Payment failed or is still processing")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Email support" })).toBeTruthy();
   });
 
   it("shows restaurant admin tools for restaurant admins", async () => {
@@ -375,6 +443,8 @@ describe("QuickBite app shell", () => {
     await user.click(screen.getByRole("button", { name: "Continue checkout" }));
     expect(await screen.findByRole("heading", { name: "Checkout" })).toBeTruthy();
     expect(screen.getByLabelText("Checkout order summary").textContent).toContain("$12.50");
+    expect(await screen.findByLabelText("Saved address")).toBeTruthy();
+    expect(screen.getByDisplayValue("123 Market Street")).toBeTruthy();
 
     await user.click(screen.getByRole("button", { name: "Place order" }));
 

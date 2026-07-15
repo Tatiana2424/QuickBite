@@ -9,6 +9,7 @@ public sealed class User : Entity
     public string PasswordHash { get; private set; } = string.Empty;
     public List<UserRole> UserRoles { get; private set; } = new();
     public List<RefreshToken> RefreshTokens { get; private set; } = new();
+    public List<CustomerAddress> Addresses { get; private set; } = new();
 
     private User()
     {
@@ -34,6 +35,66 @@ public sealed class User : Entity
         }
 
         UserRoles.Add(new UserRole(Id, role));
+    }
+}
+
+public sealed class CustomerAddress : Entity
+{
+    public Guid UserId { get; private set; }
+    public string Label { get; private set; } = string.Empty;
+    public string Line1 { get; private set; } = string.Empty;
+    public string? Line2 { get; private set; }
+    public string City { get; private set; } = string.Empty;
+    public string State { get; private set; } = string.Empty;
+    public string PostalCode { get; private set; } = string.Empty;
+    public string Country { get; private set; } = string.Empty;
+    public bool IsDefault { get; private set; }
+    public User? User { get; private set; }
+
+    private CustomerAddress()
+    {
+    }
+
+    public CustomerAddress(
+        Guid userId,
+        string label,
+        string line1,
+        string? line2,
+        string city,
+        string state,
+        string postalCode,
+        string country,
+        bool isDefault)
+    {
+        UserId = userId;
+        Update(label, line1, line2, city, state, postalCode, country, isDefault);
+    }
+
+    public void Update(
+        string label,
+        string line1,
+        string? line2,
+        string city,
+        string state,
+        string postalCode,
+        string country,
+        bool isDefault)
+    {
+        Label = label.Trim();
+        Line1 = line1.Trim();
+        Line2 = string.IsNullOrWhiteSpace(line2) ? null : line2.Trim();
+        City = city.Trim();
+        State = state.Trim();
+        PostalCode = postalCode.Trim();
+        Country = country.Trim();
+        IsDefault = isDefault;
+        Touch();
+    }
+
+    public void SetDefault(bool isDefault)
+    {
+        IsDefault = isDefault;
+        Touch();
     }
 }
 

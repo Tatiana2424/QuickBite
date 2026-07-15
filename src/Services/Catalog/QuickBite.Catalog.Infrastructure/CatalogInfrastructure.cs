@@ -70,8 +70,26 @@ public static class CatalogInfrastructureServiceCollectionExtensions
         var sushiCentral = new Restaurant("Sushi Central", "Japanese", "Sushi sets, rice bowls, miso soup, and crisp sides.", DemoSeedData.SushiCentralRestaurantId);
         var breakfastClub = new Restaurant("Breakfast Club", "Breakfast", "Morning sandwiches, pancakes, coffee, and brunch favorites.", DemoSeedData.BreakfastClubRestaurantId);
         var curryHouse = new Restaurant("Curry House", "Indian", "Comforting curries, biryani, naan, and vegetarian plates.", DemoSeedData.CurryHouseRestaurantId);
+        var burgerForge = new Restaurant("Burger Forge", "Burgers", "Stacked burgers, loaded fries, shakes, and crisp chicken sandwiches.", DemoSeedData.BurgerForgeRestaurantId);
+        var noodleHouse = new Restaurant("Noodle House", "Asian", "Brothy noodles, stir-fried classics, dumplings, and quick rice plates.", DemoSeedData.NoodleHouseRestaurantId);
+        var greenGarden = new Restaurant("Green Garden", "Vegan", "Plant-forward salads, warm bowls, smoothies, and bakery bites.", DemoSeedData.GreenGardenRestaurantId);
+        var smokehouse = new Restaurant("Oak Smokehouse", "Barbecue", "Slow-smoked meats, picnic sides, cornbread, and family plates.", DemoSeedData.SmokehouseRestaurantId);
+        var sweetCorner = new Restaurant("Sweet Corner", "Dessert", "Cakes, cookies, gelato, and coffee for after-dinner cravings.", DemoSeedData.SweetCornerRestaurantId);
+        var mediterraneanTable = new Restaurant("Mediterranean Table", "Mediterranean", "Grilled plates, mezze, pita wraps, and bright herb sauces.", DemoSeedData.MediterraneanTableRestaurantId);
 
-        dbContext.Restaurants.AddRange(urbanBowl, pizzaPort, tacoLane, sushiCentral, breakfastClub, curryHouse);
+        dbContext.Restaurants.AddRange(
+            urbanBowl,
+            pizzaPort,
+            tacoLane,
+            sushiCentral,
+            breakfastClub,
+            curryHouse,
+            burgerForge,
+            noodleHouse,
+            greenGarden,
+            smokehouse,
+            sweetCorner,
+            mediterraneanTable);
         dbContext.MenuItems.AddRange(
             new MenuItem(urbanBowl.Id, "Chicken Power Bowl", "Grilled chicken, rice, greens, sesame dressing.", 12.90m, DemoSeedData.UrbanBowlChickenPowerBowlId),
             new MenuItem(urbanBowl.Id, "Falafel Wrap", "Falafel, hummus, slaw, and pickled onions.", 9.50m, DemoSeedData.UrbanBowlFalafelWrapId),
@@ -92,7 +110,26 @@ public static class CatalogInfrastructureServiceCollectionExtensions
             new MenuItem(breakfastClub.Id, "Cold Brew", "Slow-steeped coffee over ice.", 4.25m),
             new MenuItem(curryHouse.Id, "Butter Chicken", "Tomato cream curry with basmati rice.", 14.90m),
             new MenuItem(curryHouse.Id, "Chana Masala", "Chickpeas simmered with tomato, ginger, and spices.", 11.75m),
-            new MenuItem(curryHouse.Id, "Garlic Naan", "Tandoor bread brushed with garlic butter.", 3.95m));
+            new MenuItem(curryHouse.Id, "Garlic Naan", "Tandoor bread brushed with garlic butter.", 3.95m),
+            new MenuItem(burgerForge.Id, "Forge Classic", "Double beef patty, cheddar, pickles, onion, and house sauce.", 13.95m),
+            new MenuItem(burgerForge.Id, "Crispy Ranch Chicken", "Fried chicken, ranch slaw, pickles, and brioche bun.", 12.75m),
+            new MenuItem(burgerForge.Id, "Loaded Forge Fries", "Fries with cheddar, scallions, bacon, and garlic aioli.", 7.40m),
+            new MenuItem(burgerForge.Id, "Vanilla Bean Shake", "Creamy vanilla shake with whipped cream.", 5.80m),
+            new MenuItem(noodleHouse.Id, "Spicy Miso Ramen", "Miso broth, pork, egg, corn, scallions, and chili oil.", 14.50m),
+            new MenuItem(noodleHouse.Id, "Chicken Pad Thai", "Rice noodles, chicken, tamarind, egg, peanuts, and lime.", 13.60m),
+            new MenuItem(noodleHouse.Id, "Pork Dumplings", "Pan-seared dumplings with ginger soy dip.", 7.25m),
+            new MenuItem(greenGarden.Id, "Avocado Crunch Salad", "Greens, avocado, seeds, chickpeas, cucumber, and lemon vinaigrette.", 11.90m),
+            new MenuItem(greenGarden.Id, "Mushroom Shawarma Bowl", "Spiced mushrooms, rice, tahini, cabbage, and herbs.", 13.20m),
+            new MenuItem(greenGarden.Id, "Berry Oat Smoothie", "Oat milk, berries, banana, flax, and maple.", 6.25m),
+            new MenuItem(smokehouse.Id, "Brisket Plate", "Smoked brisket with slaw, pickles, and cornbread.", 19.50m),
+            new MenuItem(smokehouse.Id, "Pulled Pork Sandwich", "Pulled pork, barbecue sauce, onions, and potato roll.", 12.90m),
+            new MenuItem(smokehouse.Id, "Mac and Cheese", "Creamy cheddar mac with toasted crumbs.", 5.95m),
+            new MenuItem(sweetCorner.Id, "Chocolate Layer Cake", "Rich chocolate cake with fudge frosting.", 6.90m),
+            new MenuItem(sweetCorner.Id, "Pistachio Gelato", "Small-batch gelato with roasted pistachios.", 5.75m),
+            new MenuItem(sweetCorner.Id, "Iced Latte", "Espresso, milk, and ice.", 4.95m),
+            new MenuItem(mediterraneanTable.Id, "Chicken Souvlaki Plate", "Grilled chicken skewers, rice, Greek salad, pita, and tzatziki.", 15.25m),
+            new MenuItem(mediterraneanTable.Id, "Mezze Sampler", "Hummus, baba ganoush, olives, tabbouleh, and warm pita.", 12.50m),
+            new MenuItem(mediterraneanTable.Id, "Lamb Kofta Wrap", "Kofta, pickles, tomato, herbs, and garlic sauce.", 11.80m));
 
         await dbContext.SaveChangesAsync(cancellationToken);
     }

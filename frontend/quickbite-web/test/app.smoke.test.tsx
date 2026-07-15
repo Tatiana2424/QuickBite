@@ -190,20 +190,29 @@ afterEach(() => {
 });
 
 describe("QuickBite app shell", () => {
-  it("renders navigation and restaurant data from the gateway service layer", async () => {
+  it("renders the customer home page separately from restaurant browsing", async () => {
     renderApp("/");
 
     expect(screen.getByRole("link", { name: "Home" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Restaurants" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Cart" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Orders" })).toBeTruthy();
-    expect(await screen.findByRole("heading", { name: "Find the right meal, then checkout fast." })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Order something good without the guesswork." })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Browse restaurants" })).toBeTruthy();
     expect((await screen.findAllByText("Urban Bowl")).length).toBeGreaterThan(0);
+  });
+
+  it("keeps the restaurants page focused on catalog search and filters", async () => {
+    renderApp("/restaurants");
+
+    expect(await screen.findByRole("heading", { name: "Browse restaurants" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Order something good without the guesswork." })).toBeNull();
+    expect(await screen.findByRole("region", { name: "All restaurants" })).toBeTruthy();
   });
 
   it("filters restaurants by search text and cuisine chips", async () => {
     const user = userEvent.setup();
-    renderApp("/");
+    renderApp("/restaurants");
 
     const discovery = await screen.findByRole("region", { name: "All restaurants" });
     expect(within(discovery).getByRole("link", { name: /Urban Bowl/ })).toBeTruthy();
@@ -226,7 +235,7 @@ describe("QuickBite app shell", () => {
     seedSession();
     renderApp("/");
 
-    await user.click(screen.getByRole("link", { name: "Orders" }));
+    await user.click(screen.getByRole("link", { name: "Orders", exact: true }));
 
     expect(await screen.findByRole("heading", { name: "My Orders" })).toBeTruthy();
     expect(screen.getByText("2 x Harvest Bowl")).toBeTruthy();
@@ -236,7 +245,7 @@ describe("QuickBite app shell", () => {
     const { unmount } = renderApp("/");
 
     expect(screen.getByRole("link", { name: "Sign in" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Create account" })).toBeTruthy();
+    expect(screen.getAllByRole("link", { name: "Create account" }).length).toBeGreaterThan(0);
     expect(screen.queryByRole("link", { name: "Account" })).toBeNull();
 
     unmount();

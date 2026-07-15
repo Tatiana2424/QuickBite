@@ -1,13 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { EmptyState, ErrorState, LoadingState } from "../components/AsyncState";
 import { RestaurantSummary } from "../models";
 import { getRestaurants } from "../services/quickbiteService";
 
 export function RestaurantsPage() {
+  const [searchParams] = useSearchParams();
+  const cuisineFromUrl = searchParams.get("cuisine");
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCuisine, setSelectedCuisine] = useState("All");
+  const [selectedCuisine, setSelectedCuisine] = useState(cuisineFromUrl || "All");
   const restaurantsQuery = useQuery({
     queryKey: ["restaurants"],
     queryFn: getRestaurants
@@ -31,15 +33,19 @@ export function RestaurantsPage() {
   }, [restaurants, searchTerm, selectedCuisine]);
   const hasFilters = searchTerm.trim().length > 0 || selectedCuisine !== "All";
 
+  useEffect(() => {
+    setSelectedCuisine(cuisineFromUrl || "All");
+  }, [cuisineFromUrl]);
+
   return (
     <section className="stack">
-      <div className="home-hero">
+      <div className="catalog-hero">
         <div className="page-heading">
-          <p className="eyebrow">Restaurants near you</p>
-          <h1>Find the right meal, then checkout fast.</h1>
-          <p className="muted">Search local favorites by name or cuisine, compare what looks good, and track every order from payment to delivery.</p>
+          <p className="eyebrow">Restaurant catalog</p>
+          <h1>Browse restaurants</h1>
+          <p className="muted">Search by name or cuisine, compare local favorites, and open a menu when something looks good.</p>
         </div>
-        <a className="button-link button-link--primary" href="#restaurant-discovery">Browse restaurants</a>
+        <a className="button-link button-link--primary" href="#restaurant-discovery">Skip to filters</a>
       </div>
       {restaurantsQuery.isLoading && <LoadingState label="Loading restaurants..." />}
       {restaurantsQuery.isError && <ErrorState error={restaurantsQuery.error} action={<button type="button" onClick={() => void restaurantsQuery.refetch()}>Retry</button>} />}

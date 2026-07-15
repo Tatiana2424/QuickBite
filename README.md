@@ -156,7 +156,7 @@ Demo password for every seeded account: `Pass123!`
 | `courier@quickbite.local` | Courier | Courier delivery operations. |
 | `admin@quickbite.local` | PlatformAdmin | Admin-level access to protected operational screens. |
 
-Seeded catalog data includes Urban Bowl, Pizza Port, Taco Lane, Sushi Central, Breakfast Club, and Curry House with 20 menu items across healthy, Italian, Mexican, Japanese, breakfast, and Indian categories.
+Seeded catalog data includes Urban Bowl, Pizza Port, Taco Lane, Sushi Central, Breakfast Club, Curry House, Burger Forge, Noodle House, Green Garden, Oak Smokehouse, Sweet Corner, and Mediterranean Table with 39 menu items across healthy, Italian, Mexican, Japanese, breakfast, Indian, burgers, Asian, vegan, barbecue, dessert, and Mediterranean categories.
 
 The seeded customer account includes three orders:
 

@@ -10,7 +10,7 @@ import { getMyOrders, getRestaurants } from "../services/quickbiteService";
 export function HomePage() {
   const { isAuthenticated, user } = useAuth();
   const { itemCount, totalAmount } = useCart();
-  const { favoriteRestaurantIds, isFavorite, toggleFavorite } = useFavoriteRestaurants();
+  const { isFavorite, toggleFavorite } = useFavoriteRestaurants();
   const restaurantsQuery = useQuery({
     queryKey: ["restaurants"],
     queryFn: getRestaurants
@@ -23,9 +23,6 @@ export function HomePage() {
 
   const restaurants = restaurantsQuery.data ?? [];
   const featuredRestaurants = restaurants.slice(0, 4);
-  const favoriteRestaurants = favoriteRestaurantIds
-    .map((restaurantId) => restaurants.find((restaurant) => restaurant.id === restaurantId))
-    .filter((restaurant): restaurant is RestaurantSummary => Boolean(restaurant));
   const cuisines = Array.from(new Set(restaurants.map((restaurant) => restaurant.cuisine))).slice(0, 8);
   const recentOrder = ordersQuery.data?.[0];
 
@@ -88,26 +85,6 @@ export function HomePage() {
               ))}
             </div>
           </section>
-
-          {favoriteRestaurants.length > 0 && (
-            <section className="panel favorites-panel" aria-label="Favorite restaurants">
-              <div className="section-heading section-heading--row">
-                <div>
-                  <p className="eyebrow">Favorites</p>
-                  <h2>Restaurants you saved</h2>
-                </div>
-                <Link className="text-link" to="/restaurants">Manage favorites</Link>
-              </div>
-              <div className="favorite-list">
-                {favoriteRestaurants.slice(0, 4).map((restaurant) => (
-                  <Link key={restaurant.id} className="favorite-pill" to={`/restaurants/${restaurant.id}`}>
-                    <span>{restaurant.name}</span>
-                    <small>{restaurant.cuisine}</small>
-                  </Link>
-                ))}
-              </div>
-            </section>
-          )}
 
           <section className="panel cuisine-shortcuts" aria-label="Cuisine shortcuts">
             <div className="section-heading">

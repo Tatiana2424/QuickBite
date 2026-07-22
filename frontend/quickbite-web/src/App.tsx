@@ -158,19 +158,7 @@ function AppShell() {
 function BrandMark() {
   return (
     <Link to="/" className="brand-mark" aria-label="QuickBite home">
-      <svg viewBox="0 0 96 72" role="img" aria-hidden="true" focusable="false">
-        <path className="brand-mark__chef" d="M20 19c-5-8 5-18 14-11 5-10 22-7 22 6 0 11-13 15-23 12-6-2-12 2-13 8" />
-        <path className="brand-mark__speed" d="M7 35h18M3 43h22M8 51h18" />
-        <path className="brand-mark__scooter" d="M48 49h27l7-10v21H48z" />
-        <path className="brand-mark__box-lid" d="M54 25l24 10c5 2 7 8 3 12l-31-13c-2-5 0-8 4-9z" />
-        <path className="brand-mark__slice-left" d="M27 31l25 8-15 22z" />
-        <path className="brand-mark__slice-right" d="M53 36l29 12-24 18z" />
-        <path className="brand-mark__separator" d="M49 39L41 63M54 37L60 64" />
-        <circle className="brand-mark__wheel" cx="32" cy="58" r="7" />
-        <circle className="brand-mark__wheel" cx="76" cy="58" r="7" />
-        <path className="brand-mark__badge" d="M28 24c7-4 17-5 27-2" />
-        <path className="brand-mark__steam" d="M21 14c-3-3-2-7 2-9" />
-      </svg>
+      <img className="brand-mark__image" src="/quickbite-logo.png" alt="" draggable="false" />
     </Link>
   );
 }

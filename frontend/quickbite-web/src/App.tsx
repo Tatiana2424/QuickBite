@@ -158,14 +158,18 @@ function AppShell() {
 function BrandMark() {
   return (
     <Link to="/" className="brand-mark" aria-label="QuickBite home">
-      <svg viewBox="0 0 64 64" role="img" aria-hidden="true" focusable="false">
-        <circle className="brand-mark__plate" cx="32" cy="32" r="28" />
-        <path className="brand-mark__speed" d="M12 25c-3 1-5 3-6 5M14 18c-4 1-7 3-9 6" />
-        <circle className="brand-mark__q-ring" cx="29" cy="32" r="15" />
-        <path className="brand-mark__q-tail" d="M39 42l9 9" />
-        <path className="brand-mark__cloche" d="M19 41h24M23 38c2-9 15-10 18 0M32 27v-5M28 22h8" />
-        <path className="brand-mark__leaf" d="M45 25c7-5 11-2 10 5-6 2-10 1-10-5Z" />
-        <path className="brand-mark__leaf-vein" d="M46 28c3-1 5-2 8-4" />
+      <svg viewBox="0 0 96 72" role="img" aria-hidden="true" focusable="false">
+        <path className="brand-mark__chef" d="M20 19c-5-8 5-18 14-11 5-10 22-7 22 6 0 11-13 15-23 12-6-2-12 2-13 8" />
+        <path className="brand-mark__speed" d="M7 35h18M3 43h22M8 51h18" />
+        <path className="brand-mark__scooter" d="M48 49h27l7-10v21H48z" />
+        <path className="brand-mark__box-lid" d="M54 25l24 10c5 2 7 8 3 12l-31-13c-2-5 0-8 4-9z" />
+        <path className="brand-mark__slice-left" d="M27 31l25 8-15 22z" />
+        <path className="brand-mark__slice-right" d="M53 36l29 12-24 18z" />
+        <path className="brand-mark__separator" d="M49 39L41 63M54 37L60 64" />
+        <circle className="brand-mark__wheel" cx="32" cy="58" r="7" />
+        <circle className="brand-mark__wheel" cx="76" cy="58" r="7" />
+        <path className="brand-mark__badge" d="M28 24c7-4 17-5 27-2" />
+        <path className="brand-mark__steam" d="M21 14c-3-3-2-7 2-9" />
       </svg>
     </Link>
   );
